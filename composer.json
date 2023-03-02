@@ -1,0 +1,36 @@
+{
+    "name": "free2one/php-accessor",
+    "description": "Generate getter and setter methods automatically",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "PhpAccessor\\": "src/"
+        }
+    },
+    "autoload-dev" : {
+        "psr-4" : {
+            "PhpAccessor\\Test\\Mock\\" : "tests/mock/",
+            "PhpAccessor\\Test\\" : "tests/cases/"
+        }
+    },
+    "require": {
+        "php": ">=8.0",
+        "nikic/php-parser": "^4.15",
+        "symfony/console": "^5.4 || ^6.0",
+        "symfony/finder": "^5.4 || ^6.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "phpunit/phpunit": "^9.0",
+        "symfony/var-dumper": "^6.0"
+    },
+    "scripts": {
+        "test": [
+            "vendor/bin/phpunit"
+        ]
+    },
+    "bin": [
+        "php-accessor"
+    ]
+}

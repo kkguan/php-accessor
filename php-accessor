@@ -1,0 +1,35 @@
+#!/usr/bin/env php
+<?php
+
+/*
+ * This file is part of the PhpAccessor package.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+use PhpAccessor\Console\Application;
+
+(function () {
+    $require = true;
+    if ($require) {
+        // OK, it's not, let give Composer autoloader a try!
+        $possibleFiles = [__DIR__.'/../../autoload.php', __DIR__.'/../autoload.php', __DIR__.'/vendor/autoload.php'];
+        $file = null;
+        foreach ($possibleFiles as $possibleFile) {
+            if (file_exists($possibleFile)) {
+                $file = $possibleFile;
+
+                break;
+            }
+        }
+
+        if (null === $file) {
+            throw new RuntimeException('Unable to locate autoload.php file.');
+        }
+
+        require_once $file;
+    }
+})();
+
+(new Application())->run();
+__HALT_COMPILER();
