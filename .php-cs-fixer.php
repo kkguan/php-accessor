@@ -6,7 +6,7 @@
  * file that was distributed with this source code.
  */
 
-if (!file_exists(__DIR__.'/src')) {
+if (!file_exists(__DIR__ . '/src')) {
     exit(0);
 }
 
@@ -23,6 +23,9 @@ return (new PhpCsFixer\Config())
         '@Symfony' => true,
         '@Symfony:risky' => true,
         'protected_to_private' => false,
+        'concat_space' => [
+            'spacing' => 'one',
+        ],
         'native_constant_invocation' => ['strict' => false],
         'nullable_type_declaration_for_default_null_value' => ['use_nullable_type_declaration' => false],
         'no_superfluous_phpdoc_tags' => ['remove_inheritdoc' => true],

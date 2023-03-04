@@ -6,8 +6,13 @@
  * file that was distributed with this source code.
  */
 
-namespace PhpAccessor\Method;
+namespace PhpAccessor\Processor;
 
+use PhpAccessor\Processor\Method\AbstractMethod;
+use PhpAccessor\Processor\Method\AccessorMethod;
+use PhpAccessor\Processor\Method\GetterMethod;
+use PhpAccessor\Processor\Method\MethodElementBuilder;
+use PhpAccessor\Processor\Method\SetterMethod;
 use PhpParser\Node\ComplexType;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;

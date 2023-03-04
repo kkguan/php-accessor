@@ -6,7 +6,7 @@
  * file that was distributed with this source code.
  */
 
-namespace PhpAccessor\Method;
+namespace PhpAccessor\Processor\Method;
 
 use PhpParser\BuilderFactory;
 use PhpParser\Node\Stmt\ClassMethod;
@@ -27,7 +27,7 @@ class GetterMethod extends AbstractMethod
 
     private function generateMethodName()
     {
-        $this->methodName = 'get'.ucfirst($this->fieldName);
+        $this->methodName = 'get' . ucfirst($this->fieldName);
     }
 
     private function generateReturnTypes()

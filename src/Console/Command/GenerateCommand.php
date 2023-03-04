@@ -65,8 +65,8 @@ final class GenerateCommand extends Command
             genProxy: $resolver->getGenProxy(),
         );
         $runner->generate();
-        foreach ($runner->getProxyFiles()as $proxyFile) {
-            $io->writeln('[proxy] '.$proxyFile, true);
+        foreach ($runner->getGeneratedFiles() as $proxyFile) {
+            $io->writeln('[generated-file] ' . $proxyFile, true);
         }
 
         return Command::SUCCESS;

@@ -6,7 +6,7 @@
  * file that was distributed with this source code.
  */
 
-namespace PhpAccessor\Method;
+namespace PhpAccessor\Processor\Method;
 
 abstract class AbstractMethod implements AccessorMethod
 {

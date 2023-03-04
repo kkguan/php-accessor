@@ -13,6 +13,8 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use Symfony\Component\Console\Input\ArrayInput;
 
+use const DIRECTORY_SEPARATOR;
+
 class ApplicationTest extends TestCase
 {
     public function testRun()
@@ -23,7 +25,8 @@ class ApplicationTest extends TestCase
             'path' => [
                 $ref->getFileName(),
             ],
-            '--dir' => __ROOT__,
+            '--gen-meta' => 'yes',
+            '--dir' => __ROOT__.DIRECTORY_SEPARATOR.'.php-accessor',
         ]);
         $app = new Application();
         $app->run($input);

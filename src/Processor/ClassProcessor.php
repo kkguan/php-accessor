@@ -6,9 +6,11 @@
  * file that was distributed with this source code.
  */
 
-namespace PhpAccessor\Method;
+namespace PhpAccessor\Processor;
 
 use PhpAccessor\Attribute\Data;
+use PhpAccessor\Processor\Method\AccessorMethod;
+use PhpParser\BuilderFactory;
 use PhpParser\Node;
 use PhpParser\Node\Attribute;
 use PhpParser\Node\Stmt\Class_;
@@ -26,6 +28,8 @@ class ClassProcessor extends NodeVisitorAbstract
 
     private bool $genCompleted = false;
 
+    private TraitAccessor $traitAccessor;
+
     public function __construct(
         private bool $genMethod
     ) {
@@ -34,68 +38,85 @@ class ClassProcessor extends NodeVisitorAbstract
     public function enterNode(Node $node)
     {
         if (!$node instanceof Class_ || empty($node->attrGroups)) {
-            return;
+            return null;
         }
 
         $needProcess = false;
-        $this->classname = '\\'.$node->namespacedName->toString();
+        $this->classname = '\\' . $node->namespacedName->toString();
         foreach ($node->attrGroups as &$classAttribute) {
             foreach ($classAttribute as &$attrs) {
                 /** @var Attribute $attr */
-                foreach ($attrs as $k => $attr) {
+                foreach ($attrs as $attr) {
                     if (Data::class == $attr->name->toString()) {
                         $needProcess = true;
-//                        unset($attrs[$k]);
                     }
                 }
             }
         }
         if (!$needProcess) {
-            return;
+            return null;
         }
 
         $nodeFinder = new NodeFinder();
         /** @var Property[] $properties */
         $properties = $nodeFinder->findInstanceOf($node, Property::class);
         if (empty($properties)) {
-            return;
+            return null;
         }
 
+        $this->generateAllMethods($node->namespacedName->toString(), $properties);
         /** @var ClassMethod[] $originalClassMethods */
         $originalClassMethods = $nodeFinder->findInstanceOf($node, ClassMethod::class);
         $originalClassMethodNames = [];
         foreach ($originalClassMethods as $originalClassMethod) {
             $originalClassMethodNames[] = $originalClassMethod->name->toString();
         }
+        $this->buildTraitAccessor($node->name, $originalClassMethodNames);
+        if (empty($this->accessorMethods) || !$this->genMethod) {
+            return null;
+        }
+
+        $this->genCompleted = true;
+
+        return $this->rebuildClass($node);
+    }
+
+    /**
+     * @param Property[] $properties
+     */
+    private function generateAllMethods(string $classname, array $properties): void
+    {
         foreach ($properties as $property) {
             foreach ($property->props as $prop) {
                 $this->accessorMethods = array_merge(
                     $this->accessorMethods,
-                    MethodFactory::createFromField($node->namespacedName->toString(), $prop, $property->type)
+                    MethodFactory::createFromField($classname, $prop, $property->type)
                 );
             }
         }
+    }
 
-        if (empty($this->accessorMethods)) {
-            return;
-        }
-
-        if (!$this->genMethod) {
-            return;
-        }
-
+    private function buildTraitAccessor($classShortName, $originalClassMethodNames): void
+    {
+        $this->traitAccessor = new TraitAccessor($classShortName);
         foreach ($this->accessorMethods as $accessorMethod) {
             if (\in_array($accessorMethod->getMethodName(), $originalClassMethodNames)) {
                 continue;
             }
-            $node->stmts[] = $accessorMethod->buildMethod();
+            $this->traitAccessor->addAccessorMethod($accessorMethod);
         }
-        $node = new Class_($node->name, [
-            'stmts' => $node->stmts,
-        ]);
-        $this->genCompleted = true;
+    }
 
-        return null;
+    private function rebuildClass(Class_ $node): Class_
+    {
+        $builder = new BuilderFactory();
+        $class = $builder
+            ->class($node->name)
+            ->addStmt($builder->useTrait('\\' . $this->traitAccessor->getClassName()));
+        $newNode = $class->getNode();
+        $newNode->stmts = array_merge($newNode->stmts, $node->stmts);
+
+        return $newNode;
     }
 
     public function isGenCompleted(): bool
@@ -111,5 +132,10 @@ class ClassProcessor extends NodeVisitorAbstract
     public function getAccessorMethods(): array
     {
         return $this->accessorMethods;
+    }
+
+    public function getTraitAccessor(): TraitAccessor
+    {
+        return $this->traitAccessor;
     }
 }

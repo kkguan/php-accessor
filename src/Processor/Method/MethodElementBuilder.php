@@ -6,7 +6,7 @@
  * file that was distributed with this source code.
  */
 
-namespace PhpAccessor\Method;
+namespace PhpAccessor\Processor\Method;
 
 use PhpParser\Node\ComplexType;
 use PhpParser\Node\Identifier;
@@ -58,7 +58,7 @@ class MethodElementBuilder
         }
 
         if ($propertyType instanceof Name) {
-            $this->fieldTypes[] = '\\'.implode('\\', $propertyType->parts);
+            $this->fieldTypes[] = '\\' . implode('\\', $propertyType->parts);
 
             return;
         }

@@ -10,7 +10,7 @@ namespace PhpAccessor\Meta;
 
 use DateTime;
 use JsonSerializable;
-use PhpAccessor\Method\AccessorMethod;
+use PhpAccessor\Processor\Method\AccessorMethod;
 
 class ClassMetadata implements JsonSerializable
 {
@@ -18,14 +18,17 @@ class ClassMetadata implements JsonSerializable
 
     protected string $classname;
 
+    protected string $accessorClassname;
+
     /** @var AccessorMethod[] */
     protected array $methods = [];
 
     protected DateTime $updateTime;
 
-    public function __construct(string $project, string $classname)
+    public function __construct(string $project, string $classname, string $accessorClassname)
     {
         $this->classname = $classname;
+        $this->accessorClassname = $accessorClassname;
         $this->project = $project;
         $this->updateTime = new DateTime();
     }

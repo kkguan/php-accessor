@@ -8,41 +8,51 @@
 
 namespace PhpAccessor;
 
-use PhpAccessor\Exception\MetadataGenerationException;
-use PhpAccessor\Exception\ProxyGenerationException;
+use ArrayIterator;
 use PhpAccessor\Meta\ClassMetadata;
-use PhpAccessor\Method\AccessorMethod;
-use PhpAccessor\Method\ClassProcessor;
+use PhpAccessor\Processor\ClassProcessor;
 use PhpParser\Node;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
 use PhpParser\PrettyPrinter\Standard;
 use SplFileInfo;
+use Symfony\Component\Filesystem\Filesystem;
 use Traversable;
 
 use const DIRECTORY_SEPARATOR;
 
 class Runner
 {
-    public const ACCESSOR_FOLDER = '.php-accessor';
+    private ArrayIterator $dirs;
 
-    private array $proxyFiles = [];
+    private array $generatedFiles = [];
+
+    private Filesystem $filesystem;
 
     public function __construct(
         private Traversable $finder,
-        private string $dir,
+        string $dir,
         private bool $genMeta,
         private bool $genProxy,
     ) {
-        if (!is_dir($dir) && !@mkdir($dir)) {
-            throw new ProxyGenerationException(sprintf('Failed to create "%s"', $dir));
-        }
+        $this->filesystem = new Filesystem();
+        $this->mkdir($dir);
     }
 
-    public function getProxyFiles(): array
+    private function mkdir($dir): void
     {
-        return $this->proxyFiles;
+        $this->dirs = new ArrayIterator([
+            'meta' => $dir . DIRECTORY_SEPARATOR . 'meta' . DIRECTORY_SEPARATOR,
+            'proxy' => $dir . DIRECTORY_SEPARATOR . 'proxy' . DIRECTORY_SEPARATOR,
+            'accessor' => $dir . DIRECTORY_SEPARATOR . 'proxy' . DIRECTORY_SEPARATOR . 'accessor' . DIRECTORY_SEPARATOR,
+        ]);
+        $this->filesystem->mkdir($this->dirs);
+    }
+
+    public function getGeneratedFiles(): array
+    {
+        return $this->generatedFiles;
     }
 
     public function generate(): void
@@ -63,64 +73,55 @@ class Runner
 
         $traverser = new NodeTraverser();
         $traverser->addVisitor(new NameResolver());
-
         $stmts = $traverser->traverse($stmts);
         $traverser = new NodeTraverser();
-
         $classProcessor = new ClassProcessor($this->genProxy);
         $traverser->addVisitor($classProcessor);
         $ast = $traverser->traverse($stmts);
 
-        $classProcessor->isGenCompleted() && $this->generateProxy($classProcessor->getClassname(), $ast);
-        $this->generateMetadata($classProcessor->getClassname(), $classProcessor->getAccessorMethods());
+        $classProcessor->isGenCompleted() && $this->generateProxy($classProcessor, $ast);
+        $this->generateMetadata($classProcessor);
     }
 
     /**
      * @param Node[] $stmts
      */
-    private function generateProxy(string $classname, array $stmts): void
+    private function generateProxy(ClassProcessor $classProcessor, array $stmts): void
     {
         if (!$this->genProxy) {
             return;
         }
 
-        $dir = $this->dir.DIRECTORY_SEPARATOR.'proxy';
-        if (!is_dir($dir) && !@mkdir($dir)) {
-            throw new ProxyGenerationException(sprintf('Failed to create "%s"', $dir));
-        }
-
-        $prettyPrinter = new Standard();
-        $proxyContent = $prettyPrinter->prettyPrintFile($stmts);
-        $fileName = str_replace('\\', '@', $classname);
-        if (false === @file_put_contents($dir.DIRECTORY_SEPARATOR.$fileName.'.php', $proxyContent)) {
-            throw new ProxyGenerationException(sprintf('Failed to write file "%s".', $fileName));
-        }
-
-        $this->proxyFiles[] = $dir.DIRECTORY_SEPARATOR.$fileName.'.php';
+        $proxyFilePath = $this->dirs->offsetGet('proxy') . $this->getFileName($classProcessor->getClassname()) . '.php';
+        $this->filesystem->dumpFile($proxyFilePath, $this->getPrintFileContent($stmts));
+        $this->generatedFiles[] = $proxyFilePath;
+        $accessorFilePath = $this->dirs->offsetGet('accessor') . $this->getFileName($classProcessor->getTraitAccessor()->getClassname()) . '.php';
+        $this->filesystem->dumpFile($accessorFilePath, $this->getPrintFileContent([$classProcessor->getTraitAccessor()->buildTrait()]));
+        $this->generatedFiles[] = $accessorFilePath;
     }
 
-    /**
-     * @param AccessorMethod[] $accessorMethods
-     */
-    private function generateMetadata(string $classname, array $accessorMethods): void
+    private function generateMetadata(ClassProcessor $classProcessor): void
     {
-        if (!$this->genMeta || empty($accessorMethods)) {
+        if (!$this->genMeta || empty($classProcessor->getAccessorMethods())) {
             return;
         }
 
-        $dir = $this->dir.DIRECTORY_SEPARATOR.'meta';
-        if (!is_dir($dir) && !@mkdir($dir)) {
-            throw new MetadataGenerationException(sprintf('Failed to create "%s"', $dir));
-        }
-
-        $classMetadata = new ClassMetadata('', $classname);
-        foreach ($accessorMethods as $accessorMethod) {
+        $classMetadata = new ClassMetadata('', $classProcessor->getClassname(), $classProcessor->getTraitAccessor()->getClassName());
+        foreach ($classProcessor->getAccessorMethods() as $accessorMethod) {
             $classMetadata->addMethod($accessorMethod);
         }
-        $fileName = str_replace('\\', '@', $classname);
-        $data = json_encode($classMetadata);
-        if (false === @file_put_contents($dir.DIRECTORY_SEPARATOR.$fileName.'.json', $data)) {
-            throw new MetadataGenerationException(sprintf('Failed to write file "%s".', $fileName));
-        }
+        $metaFilePath = $this->dirs->offsetGet('meta') . $this->getFileName($classProcessor->getClassname()) . '.json';
+        $this->filesystem->dumpFile($metaFilePath, json_encode($classMetadata));
+        $this->generatedFiles[] = $metaFilePath;
+    }
+
+    private function getFileName($classname): string
+    {
+        return str_replace('\\', '@', $classname);
+    }
+
+    private function getPrintFileContent(array $stmts): string
+    {
+        return (new Standard())->prettyPrintFile($stmts);
     }
 }

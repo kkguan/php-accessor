@@ -6,7 +6,7 @@
  * file that was distributed with this source code.
  */
 
-namespace PhpAccessor\Method;
+namespace PhpAccessor\Processor\Method;
 
 use PhpParser\BuilderFactory;
 use PhpParser\Node\Expr\Assign;
@@ -29,7 +29,7 @@ class SetterMethod extends AbstractMethod
 
     private function generateMethodName()
     {
-        $this->methodName = 'set'.ucfirst($this->fieldName);
+        $this->methodName = 'set' . ucfirst($this->fieldName);
     }
 
     private function generateParameterTypes()
