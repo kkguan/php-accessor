@@ -8,7 +8,7 @@
 
 namespace PhpAccessor;
 
-use ArrayIterator;
+use PhpAccessor\File\File;
 use PhpAccessor\Meta\ClassMetadata;
 use PhpAccessor\Processor\ClassProcessor;
 use PhpParser\Node;
@@ -17,18 +17,13 @@ use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
 use PhpParser\PrettyPrinter\Standard;
 use SplFileInfo;
-use Symfony\Component\Filesystem\Filesystem;
 use Traversable;
-
-use const DIRECTORY_SEPARATOR;
 
 class Runner
 {
-    private ArrayIterator $dirs;
-
     private array $generatedFiles = [];
 
-    private Filesystem $filesystem;
+    private File $file;
 
     public function __construct(
         private Traversable $finder,
@@ -36,18 +31,7 @@ class Runner
         private bool $genMeta,
         private bool $genProxy,
     ) {
-        $this->filesystem = new Filesystem();
-        $this->mkdir($dir);
-    }
-
-    private function mkdir($dir): void
-    {
-        $this->dirs = new ArrayIterator([
-            'meta' => $dir . DIRECTORY_SEPARATOR . 'meta' . DIRECTORY_SEPARATOR,
-            'proxy' => $dir . DIRECTORY_SEPARATOR . 'proxy' . DIRECTORY_SEPARATOR,
-            'accessor' => $dir . DIRECTORY_SEPARATOR . 'proxy' . DIRECTORY_SEPARATOR . 'accessor' . DIRECTORY_SEPARATOR,
-        ]);
-        $this->filesystem->mkdir($this->dirs);
+        $this->file = new File($dir);
     }
 
     public function getGeneratedFiles(): array
@@ -92,12 +76,16 @@ class Runner
             return;
         }
 
-        $proxyFilePath = $this->dirs->offsetGet('proxy') . $this->getFileName($classProcessor->getClassname()) . '.php';
-        $this->filesystem->dumpFile($proxyFilePath, $this->getPrintFileContent($stmts));
-        $this->generatedFiles[] = $proxyFilePath;
-        $accessorFilePath = $this->dirs->offsetGet('accessor') . $this->getFileName($classProcessor->getTraitAccessor()->getClassname()) . '.php';
-        $this->filesystem->dumpFile($accessorFilePath, $this->getPrintFileContent([$classProcessor->getTraitAccessor()->buildTrait()]));
-        $this->generatedFiles[] = $accessorFilePath;
+        $this->generatedFiles[] = $this->file->dumpFile(
+            File::PROXY,
+            $this->getFileName($classProcessor->getClassname()) . '.php',
+            $this->getPrintFileContent($stmts)
+        );
+        $this->generatedFiles[] = $this->file->dumpFile(
+            File::ACCESSOR,
+            $this->getFileName($classProcessor->getTraitAccessor()->getClassname()) . '.php',
+            $this->getPrintFileContent([$classProcessor->getTraitAccessor()->buildTrait()])
+        );
     }
 
     private function generateMetadata(ClassProcessor $classProcessor): void
@@ -110,9 +98,11 @@ class Runner
         foreach ($classProcessor->getAccessorMethods() as $accessorMethod) {
             $classMetadata->addMethod($accessorMethod);
         }
-        $metaFilePath = $this->dirs->offsetGet('meta') . $this->getFileName($classProcessor->getClassname()) . '.json';
-        $this->filesystem->dumpFile($metaFilePath, json_encode($classMetadata));
-        $this->generatedFiles[] = $metaFilePath;
+        $this->generatedFiles[] = $this->file->dumpFile(
+            File::META,
+            $this->getFileName($classProcessor->getClassname()) . '.json',
+            json_encode($classMetadata)
+        );
     }
 
     private function getFileName($classname): string

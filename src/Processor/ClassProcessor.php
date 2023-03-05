@@ -9,15 +9,22 @@
 namespace PhpAccessor\Processor;
 
 use PhpAccessor\Attribute\Data;
+use PhpAccessor\File\File;
 use PhpAccessor\Processor\Method\AccessorMethod;
 use PhpParser\BuilderFactory;
 use PhpParser\Node;
 use PhpParser\Node\Attribute;
+use PhpParser\Node\Expr\Include_;
+use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
+use PhpParser\Node\Stmt\Expression;
+use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\Node\Stmt\Property;
 use PhpParser\NodeFinder;
 use PhpParser\NodeVisitorAbstract;
+
+use const DIRECTORY_SEPARATOR;
 
 class ClassProcessor extends NodeVisitorAbstract
 {
@@ -79,6 +86,21 @@ class ClassProcessor extends NodeVisitorAbstract
         $this->genCompleted = true;
 
         return $this->rebuildClass($node);
+    }
+
+    public function afterTraverse(array $nodes)
+    {
+        if (!$this->genCompleted) {
+            return null;
+        }
+        // TODO:待优化
+        $nodeFinder = new NodeFinder();
+        /** @var Namespace_ $namespace */
+        $namespace = $nodeFinder->findFirstInstanceOf($nodes, Namespace_::class);
+        $include = new Expression(new Include_(new String_(File::ACCESSOR . DIRECTORY_SEPARATOR . $this->traitAccessor->getClassName() . '.php'), Include_::TYPE_INCLUDE_ONCE));
+        array_unshift($namespace->stmts, $include);
+
+        return $nodes;
     }
 
     /**
