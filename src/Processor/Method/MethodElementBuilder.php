@@ -52,7 +52,7 @@ class MethodElementBuilder
 
         if ($propertyType instanceof NullableType) {
             $this->fieldTypes[] = 'null';
-            $this->fieldTypes[] = $propertyType->type->name;
+            $this->buildFieldTypes($propertyType->type);
 
             return;
         }

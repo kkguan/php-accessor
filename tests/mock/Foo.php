@@ -24,5 +24,7 @@ class Foo
 
     private string|array|FooSub $name;
 
+    private ?FooSub $name2;
+
 //    private FooSub $fooSub;
 }
