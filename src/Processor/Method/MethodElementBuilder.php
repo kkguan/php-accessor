@@ -8,6 +8,7 @@
 
 namespace PhpAccessor\Processor\Method;
 
+use PhpAccessor\Processor\AttributeProcessor;
 use PhpParser\Node\ComplexType;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\IntersectionType;
@@ -25,17 +26,26 @@ class MethodElementBuilder
      */
     protected array $fieldTypes = [];
 
+    protected string $methodSuffix;
+
     public function __construct(
         private string $classname,
         private PropertyProperty $property,
-        private null|Identifier|Name|ComplexType $propertyType)
-    {
+        private null|Identifier|Name|ComplexType $propertyType,
+        private AttributeProcessor $attributeProcessor
+    ) {
     }
 
     public function build(): void
     {
         $this->fieldName = $this->property->name->toString();
+        $this->buildMethodName();
         $this->buildFieldTypes($this->propertyType);
+    }
+
+    private function buildMethodName(): void
+    {
+        $this->methodSuffix = $this->attributeProcessor->buildMethodSuffixFromField($this->fieldName);
     }
 
     private function buildFieldTypes($propertyType): void
@@ -93,5 +103,10 @@ class MethodElementBuilder
     public function getClassname(): string
     {
         return $this->classname;
+    }
+
+    public function getMethodSuffix(): string
+    {
+        return $this->methodSuffix;
     }
 }

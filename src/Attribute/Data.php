@@ -9,8 +9,18 @@
 namespace PhpAccessor\Attribute;
 
 use Attribute;
+use PhpAccessor\Attribute\Map\NamingConvention;
 
 #[Attribute(Attribute::TARGET_CLASS)]
 class Data
 {
+    /**
+     * @see NamingConvention
+     */
+    private int $namingConvention;
+
+    public function __construct(int $namingConvention)
+    {
+        $this->namingConvention = $namingConvention;
+    }
 }

@@ -29,10 +29,14 @@ class MethodFactory
     /**
      * @return AccessorMethod[]
      */
-    public static function createFromField(string $classname, PropertyProperty $property, null|Identifier|Name|ComplexType $propertyType): array
-    {
+    public static function createFromField(
+        string $classname,
+        PropertyProperty $property,
+        null|Identifier|Name|ComplexType $propertyType,
+        AttributeProcessor $attributeProcessor
+    ): array {
         $accessorMethods = [];
-        $builder = new MethodElementBuilder($classname, $property, $propertyType);
+        $builder = new MethodElementBuilder($classname, $property, $propertyType, $attributeProcessor);
         $builder->build();
         foreach (static::$methodHandlers as $methodHandler) {
             $m = $methodHandler::createFromBuilder($builder);

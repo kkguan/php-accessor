@@ -23,13 +23,18 @@ class SetterMethod extends AbstractMethod
     public function __construct($className, $fieldName, $fieldTypes)
     {
         parent::__construct($className, $fieldName, $fieldTypes);
+    }
+
+    public function init()
+    {
         $this->generateMethodName();
         $this->generateParameterTypes();
     }
 
     private function generateMethodName()
     {
-        $this->methodName = 'set' . ucfirst($this->fieldName);
+//        $this->methodName = 'set' . ucfirst($this->fieldName);
+        $this->methodName = 'set' . $this->methodSuffix;
     }
 
     private function generateParameterTypes()

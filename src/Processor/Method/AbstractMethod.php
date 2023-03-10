@@ -21,6 +21,8 @@ abstract class AbstractMethod implements AccessorMethod
 
     protected string $methodName;
 
+    protected string $methodSuffix;
+
     public function __construct($className, $fieldName, $fieldTypes)
     {
         $this->className = $className;
@@ -40,8 +42,21 @@ abstract class AbstractMethod implements AccessorMethod
 
     public static function createFromBuilder(MethodElementBuilder $builder): static
     {
-        return new static($builder->getClassname(),  $builder->getFieldName(),$builder->getFieldTypes());
+        $obj = new static($builder->getClassname(),  $builder->getFieldName(),$builder->getFieldTypes());
+        $obj->setMethodSuffix($builder->getMethodSuffix());
+        $obj->init();
+
+        return $obj;
     }
+
+    public function setMethodSuffix(string $methodSuffix): self
+    {
+        $this->methodSuffix = $methodSuffix;
+
+        return $this;
+    }
+
+    abstract public function init();
 
     public function getClassName(): string
     {

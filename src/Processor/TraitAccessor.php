@@ -21,7 +21,7 @@ class TraitAccessor
 
     public function __construct(string $classShortName)
     {
-        $this->className = '_Proxy' . $classShortName . 'Accessor';
+        $this->className = '_Proxy' . str_replace('\\', '_', $classShortName) . 'Accessor';
     }
 
     public function addAccessorMethod(AccessorMethod $abstractMethod): static

@@ -21,13 +21,18 @@ class GetterMethod extends AbstractMethod
     public function __construct($className, $fieldName, $fieldTypes)
     {
         parent::__construct($className, $fieldName, $fieldTypes);
+    }
+
+    public function init()
+    {
         $this->generateMethodName();
         $this->generateReturnTypes();
     }
 
     private function generateMethodName()
     {
-        $this->methodName = 'get' . ucfirst($this->fieldName);
+//        $this->methodName = 'get' . ucfirst($this->fieldName);
+        $this->methodName = 'get' . $this->methodSuffix;
     }
 
     private function generateReturnTypes()

@@ -9,8 +9,10 @@
 namespace PhpAccessor\Test\Mock;
 
 use PhpAccessor\Attribute\Data;
+use PhpAccessor\Attribute\Map\NamingConvention;
+use PhpAccessor\Attribute\Overlook;
 
-#[Data]
+#[Data(namingConvention: NamingConvention::UPPER_CAMEL_CASE)]
 class Foo
 {
     public const AAAA = 1;
@@ -21,10 +23,20 @@ class Foo
 //    private ?string $string;
 //
 //    private $mixd;
+    #[Overlook]
+    private string $ignore;
 
     private string|array|FooSub $name;
 
     private ?FooSub $name2;
+
+    private $test_id_2;
+
+    public function call()
+    {
+        $this->setName(222);
+        $this->setTestId2(213123);
+    }
 
 //    private FooSub $fooSub;
 }

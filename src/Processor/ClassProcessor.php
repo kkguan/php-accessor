@@ -8,8 +8,8 @@
 
 namespace PhpAccessor\Processor;
 
-use PhpAccessor\Attribute\Data;
 use PhpAccessor\File\File;
+use PhpAccessor\Processor\Builder\DataBuilder;
 use PhpAccessor\Processor\Method\AccessorMethod;
 use PhpParser\BuilderFactory;
 use PhpParser\Node;
@@ -37,9 +37,12 @@ class ClassProcessor extends NodeVisitorAbstract
 
     private TraitAccessor $traitAccessor;
 
+    private NodeFinder $nodeFinder;
+
     public function __construct(
         private bool $genMethod
     ) {
+        $this->nodeFinder = new NodeFinder();
     }
 
     public function enterNode(Node $node)
@@ -48,37 +51,34 @@ class ClassProcessor extends NodeVisitorAbstract
             return null;
         }
 
-        $needProcess = false;
         $this->classname = '\\' . $node->namespacedName->toString();
-        foreach ($node->attrGroups as &$classAttribute) {
-            foreach ($classAttribute as &$attrs) {
-                /** @var Attribute $attr */
-                foreach ($attrs as $attr) {
-                    if (Data::class == $attr->name->toString()) {
-                        $needProcess = true;
-                    }
-                }
-            }
+        $attributeProcessor = new AttributeProcessor();
+
+        /** @var Attribute[] $attributes */
+        $attributes = $this->nodeFinder->findInstanceOf($node->attrGroups, Attribute::class);
+        foreach ($attributes as $attribute) {
+            $dataBuilder = new DataBuilder();
+            $attributeProcessor->setData($dataBuilder->setAttribute($attribute)->build());
         }
-        if (!$needProcess) {
+
+        if (!$attributeProcessor->isPending()) {
             return null;
         }
 
-        $nodeFinder = new NodeFinder();
         /** @var Property[] $properties */
-        $properties = $nodeFinder->findInstanceOf($node, Property::class);
+        $properties = $this->nodeFinder->findInstanceOf($node, Property::class);
         if (empty($properties)) {
             return null;
         }
 
-        $this->generateAllMethods($node->namespacedName->toString(), $properties);
+        $this->generateAllMethods($node->namespacedName->toString(), $properties, $attributeProcessor);
         /** @var ClassMethod[] $originalClassMethods */
-        $originalClassMethods = $nodeFinder->findInstanceOf($node, ClassMethod::class);
+        $originalClassMethods = $this->nodeFinder->findInstanceOf($node, ClassMethod::class);
         $originalClassMethodNames = [];
         foreach ($originalClassMethods as $originalClassMethod) {
             $originalClassMethodNames[] = $originalClassMethod->name->toString();
         }
-        $this->buildTraitAccessor($node->name, $originalClassMethodNames);
+        $this->buildTraitAccessor($originalClassMethodNames);
         if (empty($this->accessorMethods) || !$this->genMethod) {
             return null;
         }
@@ -106,21 +106,27 @@ class ClassProcessor extends NodeVisitorAbstract
     /**
      * @param Property[] $properties
      */
-    private function generateAllMethods(string $classname, array $properties): void
-    {
+    private function generateAllMethods(
+        string $classname,
+        array $properties,
+        AttributeProcessor $attributeProcessor,
+    ): void {
         foreach ($properties as $property) {
-            foreach ($property->props as $prop) {
-                $this->accessorMethods = array_merge(
-                    $this->accessorMethods,
-                    MethodFactory::createFromField($classname, $prop, $property->type)
-                );
-            }
+            /** @var Attribute[] $attributes */
+            $attributes = $this->nodeFinder->findInstanceOf($property->attrGroups, Attribute::class);
+            $attributeProcessor->buildPropertyAttributes($property, $attributes);
+        }
+        foreach ($attributeProcessor->getPendingProperties()  as $pendingProperty) {
+            $this->accessorMethods = array_merge(
+                $this->accessorMethods,
+                MethodFactory::createFromField($classname, $pendingProperty['prop'], $pendingProperty['type'], $attributeProcessor)
+            );
         }
     }
 
-    private function buildTraitAccessor($classShortName, $originalClassMethodNames): void
+    private function buildTraitAccessor($originalClassMethodNames): void
     {
-        $this->traitAccessor = new TraitAccessor($classShortName);
+        $this->traitAccessor = new TraitAccessor($this->classname);
         foreach ($this->accessorMethods as $accessorMethod) {
             if (\in_array($accessorMethod->getMethodName(), $originalClassMethodNames)) {
                 continue;
