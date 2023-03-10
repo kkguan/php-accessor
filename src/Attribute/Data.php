@@ -19,7 +19,7 @@ class Data
      */
     private int $namingConvention;
 
-    public function __construct(int $namingConvention)
+    public function __construct(int $namingConvention = NamingConvention::NONE)
     {
         $this->namingConvention = $namingConvention;
     }
