@@ -20,13 +20,15 @@ class ApplicationTest extends TestCase
     public function testRun()
     {
         $ref = new ReflectionClass(\PhpAccessor\Test\Mock\Foo::class);
+        $ref2 = new ReflectionClass(\PhpAccessor\Test\Mock\SuperFoo::class);
         $input = new ArrayInput([
             'command' => 'generate',
             'path' => [
                 $ref->getFileName(),
+                $ref2->getFileName(),
             ],
             '--gen-meta' => 'yes',
-            '--dir' => __ROOT__.DIRECTORY_SEPARATOR.'.php-accessor',
+            '--dir' => __ROOT__ . DIRECTORY_SEPARATOR . '.php-accessor',
         ]);
         $app = new Application();
         $app->run($input);

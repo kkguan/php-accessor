@@ -17,8 +17,7 @@ class PluginTest extends TestCase
     {
         $foo = new Foo();
         $foo
-            ->setName2(3333)
-            ->setName(123123)
-            ->setTestid2(123);
+            ->setName2([3333])
+            ->setName(123123);
     }
 }

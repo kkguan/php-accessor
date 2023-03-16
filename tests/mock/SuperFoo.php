@@ -8,11 +8,10 @@
 
 namespace PhpAccessor\Test\Mock;
 
-class FooSub
-{
-    private array $arr;
+use PhpAccessor\Attribute\Data;
 
-    public function call2(): void
-    {
-    }
+#[Data]
+class SuperFoo
+{
+    private int $fid;
 }

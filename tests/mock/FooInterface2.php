@@ -8,11 +8,6 @@
 
 namespace PhpAccessor\Test\Mock;
 
-class FooSub
+interface FooInterface2
 {
-    private array $arr;
-
-    public function call2(): void
-    {
-    }
 }

@@ -13,7 +13,7 @@ use PhpAccessor\Attribute\Map\NamingConvention;
 use PhpAccessor\Attribute\Overlook;
 
 #[Data(namingConvention: NamingConvention::UPPER_CAMEL_CASE)]
-class Foo
+class Foo extends SuperFoo implements FooInterface1, FooInterface2
 {
     public const AAAA = 1;
 
@@ -23,6 +23,11 @@ class Foo
 //    private ?string $string;
 //
 //    private $mixd;
+
+    /**
+     * @var FooSub[]
+     */
+    private array $names;
     #[Overlook]
     private string $ignore;
 

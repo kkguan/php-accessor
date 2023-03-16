@@ -40,7 +40,7 @@ class Entity
 
 ## 注解说明
 
-### Data
+### `#[Data]`
 `PhpAccessor\Attribute\Data`
 
 用于PHP Accessor识别是否需要生成访问器.
@@ -54,7 +54,7 @@ class Entity
   - `NamingConvention::LOWER_CAMEL_CASE`: 小驼峰
   - `NamingConvention::NONE`: 首字母大写,系统默认配置
 
-### Overlook
+### `#[Overlook]`
 `PhpAccessor\Attribute\Overlook`
 
 用于类字段,设置后该字段将不生成访问器.

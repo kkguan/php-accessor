@@ -141,6 +141,10 @@ class ClassProcessor extends NodeVisitorAbstract
         $class = $builder
             ->class($node->name)
             ->addStmt($builder->useTrait('\\' . $this->traitAccessor->getClassName()));
+        $node->extends && $class->extend($node->extends);
+        foreach ($node->implements as $implement) {
+            $class->implement($implement);
+        }
         $newNode = $class->getNode();
         $newNode->stmts = array_merge($newNode->stmts, $node->stmts);
 
