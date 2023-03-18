@@ -5,11 +5,12 @@
 ## 快速入门
 
 ### 安装
+
 ```console
     composer require free2one/php-accessor
 ```
 
-项目`composer.json` 文件中配置以下信息信息
+项目`composer.json` 文件中配置以下信息
 ```json
 {
   "scripts":{
@@ -41,23 +42,61 @@ class Entity
 ## 注解说明
 
 ### `#[Data]`
-`PhpAccessor\Attribute\Data`
+用于PHP Accessor识别是否需要生成访问器。
 
-用于PHP Accessor识别是否需要生成访问器.
+配置项
 
-可配置项
-
-`namingConvention`
-
-访问器命名方式设置,暂支持以下类别:
+* `namingConvention`：访问器命名方式设置,暂支持以下类别
   - `NamingConvention::UPPER_CAMEL_CASE`: 大驼峰
   - `NamingConvention::LOWER_CAMEL_CASE`: 小驼峰
   - `NamingConvention::NONE`: 首字母大写,系统默认配置
 
-### `#[Overlook]`
-`PhpAccessor\Attribute\Overlook`
+示例
 
-用于类字段,设置后该字段将不生成访问器.
+```php
+<?php
+
+namespace App;
+
+use PhpAccessor\Attribute\Data;
+use PhpAccessor\Attribute\Map\NamingConvention;
+
+#[Data(namingConvention: NamingConvention::UPPER_CAMEL_CASE)]
+class Entity
+{
+    private int $id;
+
+    private string $name;
+}
+```
+
+
+
+### `#[Overlook]`
+
+设置后该类字段将不生成访问器。
+
+示例
+
+```php
+<?php
+
+namespace App;
+
+use PhpAccessor\Attribute\Data;
+use PhpAccessor\Attribute\Overlook;
+
+#[Data]
+class Entity
+{
+    private int $id;
+
+    #[Overlook]
+    private string $ignore;
+}
+```
+
+
 
 ## 要点说明
 
@@ -131,10 +170,6 @@ $entity = new Entity();
 $entity->setId(222);
 var_dump($entity);
 ```
-
-
-
-
 
 ## 相关资源
 
