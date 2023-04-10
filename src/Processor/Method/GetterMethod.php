@@ -8,9 +8,11 @@
 
 namespace PhpAccessor\Processor\Method;
 
+use PhpAccessor\DocReader\PhpDocReaderManager;
 use PhpParser\BuilderFactory;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Return_;
+use ReflectionProperty;
 
 class GetterMethod extends AbstractMethod
 {
@@ -18,20 +20,15 @@ class GetterMethod extends AbstractMethod
     /** @var string[] */
     protected array $returnTypes = [];
 
-    public function __construct($className, $fieldName, $fieldTypes)
-    {
-        parent::__construct($className, $fieldName, $fieldTypes);
-    }
-
     public function init()
     {
         $this->generateMethodName();
         $this->generateReturnTypes();
+        $this->generateMethodComment();
     }
 
     private function generateMethodName()
     {
-//        $this->methodName = 'get' . ucfirst($this->fieldName);
         $this->methodName = 'get' . $this->methodSuffix;
     }
 
@@ -44,6 +41,25 @@ class GetterMethod extends AbstractMethod
         }
     }
 
+    public function generateMethodComment()
+    {
+        if (!empty($this->fieldTypes) && !\in_array('array', $this->fieldTypes)) {
+            return;
+        }
+
+        $property = new ReflectionProperty($this->className, $this->fieldName);
+        $propertyType = PhpDocReaderManager::getInstance()->getPropertyType($property);
+        if (empty($propertyType)) {
+            return;
+        }
+
+        $this->methodComment = <<<DOC
+/**
+    * @return {$propertyType}
+    */
+DOC;
+    }
+
     public function buildMethod(): ClassMethod
     {
         $builder = new BuilderFactory();
@@ -52,6 +68,7 @@ class GetterMethod extends AbstractMethod
             ->method($this->methodName)
             ->makePublic()
             ->setReturnType(implode('|', $this->returnTypes))
+            ->setDocComment($this->methodComment)
             ->addStmt(
                 new Return_(
                     $builder->propertyFetch($builder->var('this'), $this->fieldName)

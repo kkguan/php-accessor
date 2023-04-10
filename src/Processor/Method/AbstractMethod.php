@@ -23,6 +23,8 @@ abstract class AbstractMethod implements AccessorMethod
 
     protected string $methodSuffix;
 
+    protected string $methodComment = '';
+
     public function __construct($className, $fieldName, $fieldTypes)
     {
         $this->className = $className;
@@ -81,5 +83,10 @@ abstract class AbstractMethod implements AccessorMethod
     public function getName(): string
     {
         return $this->name;
+    }
+
+    public function getMethodComment(): string
+    {
+        return $this->methodComment;
     }
 }
