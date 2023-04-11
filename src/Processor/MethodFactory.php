@@ -13,6 +13,7 @@ use PhpAccessor\Processor\Method\AccessorMethod;
 use PhpAccessor\Processor\Method\GetterMethod;
 use PhpAccessor\Processor\Method\MethodElementBuilder;
 use PhpAccessor\Processor\Method\SetterMethod;
+use PhpParser\Comment\Doc;
 use PhpParser\Node\ComplexType;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
@@ -33,10 +34,11 @@ class MethodFactory
         string $classname,
         PropertyProperty $property,
         null|Identifier|Name|ComplexType $propertyType,
+        null|Doc $propertyDocComment,
         AttributeProcessor $attributeProcessor
     ): array {
         $accessorMethods = [];
-        $builder = new MethodElementBuilder($classname, $property, $propertyType, $attributeProcessor);
+        $builder = new MethodElementBuilder($classname, $property, $propertyType, $propertyDocComment, $attributeProcessor);
         $builder->build();
         foreach (static::$methodHandlers as $methodHandler) {
             $m = $methodHandler::createFromBuilder($builder);

@@ -20,11 +20,6 @@ class SetterMethod extends AbstractMethod
     /** @var string[] */
     private array $parameterTypes = [];
 
-    public function __construct($className, $fieldName, $fieldTypes)
-    {
-        parent::__construct($className, $fieldName, $fieldTypes);
-    }
-
     public function init()
     {
         $this->generateMethodName();
@@ -33,7 +28,6 @@ class SetterMethod extends AbstractMethod
 
     private function generateMethodName()
     {
-//        $this->methodName = 'set' . ucfirst($this->fieldName);
         $this->methodName = 'set' . $this->methodSuffix;
     }
 

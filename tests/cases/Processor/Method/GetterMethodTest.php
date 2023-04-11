@@ -17,21 +17,21 @@ class GetterMethodTest extends TestCase
     /**
      * @dataProvider  getGenerateMethodCommentExamples
      */
-    public function testGenerateMethodComment($className, $fieldName, $fieldTypes, $comment)
+    public function testGenerateMethodComment($className, $fieldName, $fieldTypes, $propertyComment, $methodComment)
     {
-        $getterMethod = new GetterMethod($className, $fieldName, $fieldTypes);
+        $getterMethod = new GetterMethod($className, $fieldName, $fieldTypes, $propertyComment);
         $getterMethod->generateMethodComment();
-        $this->assertSame($comment, $getterMethod->getMethodComment());
+        $this->assertSame($methodComment, $getterMethod->getMethodComment());
     }
 
     public function getGenerateMethodCommentExamples(): array
     {
         return [
-            [GenerateMethodComment::class, 'id', [], "/**\n    * @return int\n    */"],
-            [GenerateMethodComment::class, 'name', ['string'], ''],
-            [GenerateMethodComment::class, 'age', ['int'], ''],
-            [GenerateMethodComment::class, 'array1', [], "/**\n    * @return \PhpAccessor\Test\Mock\FooSub[]\n    */"],
-            [GenerateMethodComment::class, 'array2', ['array'], "/**\n    * @return \PhpAccessor\Test\Mock\FooSub[]\n    */"],
+            [GenerateMethodComment::class, 'id', [], "/**\n    * @var int\n    */", "/**\n    * @return int\n    */"],
+            [GenerateMethodComment::class, 'name', ['string'], '', ''],
+            [GenerateMethodComment::class, 'age', ['int'], '', ''],
+            [GenerateMethodComment::class, 'array1', [], "/**\n    * @var \PhpAccessor\Test\Mock\FooSub[]\n    */", "/**\n    * @return \PhpAccessor\Test\Mock\FooSub[]\n    */"],
+            [GenerateMethodComment::class, 'array2', ['array'], "/**\n    * @var \PhpAccessor\Test\Mock\FooSub[]\n    */", "/**\n    * @return \PhpAccessor\Test\Mock\FooSub[]\n    */"],
         ];
     }
 }

@@ -12,6 +12,7 @@ use PhpAccessor\File\File;
 use PhpAccessor\Processor\Builder\DataBuilder;
 use PhpAccessor\Processor\Method\AccessorMethod;
 use PhpParser\BuilderFactory;
+use PhpParser\Comment\Doc;
 use PhpParser\Node;
 use PhpParser\Node\Attribute;
 use PhpParser\Node\Expr\Include_;
@@ -21,6 +22,7 @@ use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Expression;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\Node\Stmt\Property;
+use PhpParser\Node\Stmt\Use_;
 use PhpParser\NodeFinder;
 use PhpParser\NodeVisitorAbstract;
 
@@ -32,6 +34,29 @@ class ClassProcessor extends NodeVisitorAbstract
     private array $accessorMethods = [];
 
     private string $classname = '';
+
+    private string $namespace = '';
+
+    /**
+     * @var array<string, string>
+     */
+    private array $usedClassNames = [];
+
+    private const PRIMITIVE_TYPES = [
+        'bool' => 'bool',
+        'boolean' => 'bool',
+        'string' => 'string',
+        'int' => 'int',
+        'integer' => 'int',
+        'float' => 'float',
+        'double' => 'float',
+        'array' => 'array',
+        'object' => 'object',
+        'callable' => 'callable',
+        'resource' => 'resource',
+        'mixed' => 'mixed',
+        'iterable' => 'iterable',
+    ];
 
     private bool $genCompleted = false;
 
@@ -47,11 +72,17 @@ class ClassProcessor extends NodeVisitorAbstract
 
     public function enterNode(Node $node)
     {
+        if ($node instanceof Use_) {
+            $this->collectUsedClassNames($node);
+
+            return null;
+        }
         if (!$node instanceof Class_ || empty($node->attrGroups)) {
             return null;
         }
 
         $this->classname = '\\' . $node->namespacedName->toString();
+        $this->namespace = str_replace("\\{$node->name->toString()}", '', $this->classname);
         $attributeProcessor = new AttributeProcessor();
 
         /** @var Attribute[] $attributes */
@@ -70,6 +101,8 @@ class ClassProcessor extends NodeVisitorAbstract
         if (empty($properties)) {
             return null;
         }
+
+        $this->processPropertiesDocComment($properties);
 
         $this->generateAllMethods($node->namespacedName->toString(), $properties, $attributeProcessor);
         /** @var ClassMethod[] $originalClassMethods */
@@ -119,7 +152,7 @@ class ClassProcessor extends NodeVisitorAbstract
         foreach ($attributeProcessor->getPendingProperties()  as $pendingProperty) {
             $this->accessorMethods = array_merge(
                 $this->accessorMethods,
-                MethodFactory::createFromField($classname, $pendingProperty['prop'], $pendingProperty['type'], $attributeProcessor)
+                MethodFactory::createFromField($classname, $pendingProperty['prop'], $pendingProperty['type'], $pendingProperty['doc'], $attributeProcessor)
             );
         }
     }
@@ -169,5 +202,63 @@ class ClassProcessor extends NodeVisitorAbstract
     public function getTraitAccessor(): TraitAccessor
     {
         return $this->traitAccessor;
+    }
+
+    private function collectUsedClassNames(Use_ $node): void
+    {
+        foreach ($node->uses as $use) {
+            $aliasName = $use->name->getLast();
+            if (!empty($use->alias)) {
+                $aliasName = $use->alias->toString();
+            }
+            $this->usedClassNames[strtolower($aliasName)] = $use->name->toString();
+        }
+    }
+
+    /**
+     * @param Property[] $properties
+     */
+    private function processPropertiesDocComment(array $properties): void
+    {
+        foreach ($properties as $property) {
+            if (empty($docComment = $property->getDocComment())) {
+                continue;
+            }
+
+            if (!preg_match('/(?<=@var\s)[^\s]+/', $docComment->getText(), $matches)) {
+                continue;
+            }
+
+            $type = $matches[0];
+            $isArray = str_ends_with($type, '[]');
+            if ($isArray) {
+                $type = substr($type, 0, -2);
+            }
+
+            if (isset(self::PRIMITIVE_TYPES[$type])) {
+                continue;
+            }
+
+            $type = $this->getUsedClassName($type) . ($isArray ? '[]' : '');
+            $text = str_replace($matches[0], $type, $docComment->getText());
+
+            $property->setDocComment(new Doc($text));
+        }
+    }
+
+    private function getUsedClassName(string $type): ?string
+    {
+        $alias = ($pos = strpos($type, '\\')) === false ? $type : substr($type, 0, $pos);
+        $loweredAlias = strtolower($alias);
+
+        if (isset($this->usedClassNames[$loweredAlias])) {
+            if (false !== $pos) {
+                return $this->usedClassNames[$loweredAlias] . substr($type, $pos);
+            }
+
+            return $this->usedClassNames[$loweredAlias];
+        }
+
+        return "{$this->namespace}\\{$type}";
     }
 }

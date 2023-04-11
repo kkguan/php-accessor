@@ -16,6 +16,8 @@ abstract class AbstractMethod implements AccessorMethod
 
     protected string $fieldName;
 
+    protected string $fieldDocComment;
+
     /** @var string[] */
     protected array $fieldTypes;
 
@@ -25,11 +27,12 @@ abstract class AbstractMethod implements AccessorMethod
 
     protected string $methodComment = '';
 
-    public function __construct($className, $fieldName, $fieldTypes)
+    public function __construct($className, $fieldName, $fieldTypes, $fieldDocComment)
     {
         $this->className = $className;
         $this->fieldName = $fieldName;
         $this->fieldTypes = $fieldTypes;
+        $this->fieldDocComment = $fieldDocComment;
     }
 
     public function jsonSerialize(): array
@@ -44,7 +47,7 @@ abstract class AbstractMethod implements AccessorMethod
 
     public static function createFromBuilder(MethodElementBuilder $builder): static
     {
-        $obj = new static($builder->getClassname(),  $builder->getFieldName(),$builder->getFieldTypes());
+        $obj = new static($builder->getClassname(),  $builder->getFieldName(),$builder->getFieldTypes(), $builder->getPropertyDocComment());
         $obj->setMethodSuffix($builder->getMethodSuffix());
         $obj->init();
 

@@ -9,6 +9,7 @@
 namespace PhpAccessor\Processor\Method;
 
 use PhpAccessor\Processor\AttributeProcessor;
+use PhpParser\Comment\Doc;
 use PhpParser\Node\ComplexType;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\IntersectionType;
@@ -32,6 +33,7 @@ class MethodElementBuilder
         private string $classname,
         private PropertyProperty $property,
         private null|Identifier|Name|ComplexType $propertyType,
+        private null|Doc $propertyDocComment,
         private AttributeProcessor $attributeProcessor
     ) {
     }
@@ -108,5 +110,10 @@ class MethodElementBuilder
     public function getMethodSuffix(): string
     {
         return $this->methodSuffix;
+    }
+
+    public function getPropertyDocComment(): string
+    {
+        return (string) $this->propertyDocComment?->getText();
     }
 }

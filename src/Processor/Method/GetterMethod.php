@@ -8,11 +8,9 @@
 
 namespace PhpAccessor\Processor\Method;
 
-use PhpAccessor\DocReader\PhpDocReaderManager;
 use PhpParser\BuilderFactory;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Return_;
-use ReflectionProperty;
 
 class GetterMethod extends AbstractMethod
 {
@@ -43,19 +41,21 @@ class GetterMethod extends AbstractMethod
 
     public function generateMethodComment()
     {
+        if (empty($this->fieldDocComment)) {
+            return;
+        }
+
         if (!empty($this->fieldTypes) && !\in_array('array', $this->fieldTypes)) {
             return;
         }
 
-        $property = new ReflectionProperty($this->className, $this->fieldName);
-        $propertyType = PhpDocReaderManager::getInstance()->getPropertyType($property);
-        if (empty($propertyType)) {
+        if (!preg_match('/(?<=@var\s)[^\s]+/', $this->fieldDocComment, $matches)) {
             return;
         }
 
         $this->methodComment = <<<DOC
 /**
-    * @return {$propertyType}
+    * @return {$matches[0]}
     */
 DOC;
     }
