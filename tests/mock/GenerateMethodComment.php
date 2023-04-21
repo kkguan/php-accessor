@@ -33,4 +33,10 @@ class GenerateMethodComment
      * @var string[]
      */
     public array $array3;
+
+    /**
+     * @var int
+     * @var string
+     */
+    public $foo;
 }
