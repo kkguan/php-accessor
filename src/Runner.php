@@ -10,10 +10,10 @@ namespace PhpAccessor;
 
 use PhpAccessor\File\File;
 use PhpAccessor\Meta\ClassMetadata;
+use PhpAccessor\NodeVisitor\NameResolver;
 use PhpAccessor\Processor\ClassProcessor;
 use PhpParser\Node;
 use PhpParser\NodeTraverser;
-use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
 use PhpParser\PrettyPrinter\Standard;
 use SplFileInfo;
