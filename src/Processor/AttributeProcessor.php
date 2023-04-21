@@ -66,7 +66,7 @@ class AttributeProcessor
                 continue;
             }
 
-            $this->pendingProperties[] = ['prop' => $prop, 'type' => $property->type, 'doc' => $property->getDocComment()];
+            $this->pendingProperties[] = ['prop' => $prop, 'type' => $property->type, 'doc' => $property->getAttribute('resolvedDocComment') ?? null];
         }
     }
 

@@ -28,4 +28,9 @@ class GenerateMethodComment
      * @var FooSub[]
      */
     public array $array2;
+
+    /**
+     * @var string[]
+     */
+    public array $array3;
 }

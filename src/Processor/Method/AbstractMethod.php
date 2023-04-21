@@ -8,6 +8,8 @@
 
 namespace PhpAccessor\Processor\Method;
 
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
+
 abstract class AbstractMethod implements AccessorMethod
 {
     protected string $name = '';
@@ -16,7 +18,7 @@ abstract class AbstractMethod implements AccessorMethod
 
     protected string $fieldName;
 
-    protected string $fieldDocComment;
+    protected ?PhpDocNode $fieldComment = null;
 
     /** @var string[] */
     protected array $fieldTypes;
@@ -27,12 +29,12 @@ abstract class AbstractMethod implements AccessorMethod
 
     protected string $methodComment = '';
 
-    public function __construct($className, $fieldName, $fieldTypes, $fieldDocComment)
+    public function __construct($className, $fieldName, $fieldTypes, $fieldComment)
     {
         $this->className = $className;
         $this->fieldName = $fieldName;
         $this->fieldTypes = $fieldTypes;
-        $this->fieldDocComment = $fieldDocComment;
+        $this->fieldComment = $fieldComment;
     }
 
     public function jsonSerialize(): array
@@ -76,6 +78,11 @@ abstract class AbstractMethod implements AccessorMethod
     public function getFieldTypes(): array
     {
         return $this->fieldTypes;
+    }
+
+    public function getFieldComment(): string
+    {
+        return (string) $this->fieldComment;
     }
 
     public function getMethodName(): string

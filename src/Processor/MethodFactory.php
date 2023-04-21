@@ -13,11 +13,11 @@ use PhpAccessor\Processor\Method\AccessorMethod;
 use PhpAccessor\Processor\Method\GetterMethod;
 use PhpAccessor\Processor\Method\MethodElementBuilder;
 use PhpAccessor\Processor\Method\SetterMethod;
-use PhpParser\Comment\Doc;
 use PhpParser\Node\ComplexType;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\PropertyProperty;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 
 class MethodFactory
 {
@@ -34,7 +34,7 @@ class MethodFactory
         string $classname,
         PropertyProperty $property,
         null|Identifier|Name|ComplexType $propertyType,
-        null|Doc $propertyDocComment,
+        null|PhpDocNode $propertyDocComment,
         AttributeProcessor $attributeProcessor
     ): array {
         $accessorMethods = [];

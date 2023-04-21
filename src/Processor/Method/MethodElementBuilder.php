@@ -9,7 +9,6 @@
 namespace PhpAccessor\Processor\Method;
 
 use PhpAccessor\Processor\AttributeProcessor;
-use PhpParser\Comment\Doc;
 use PhpParser\Node\ComplexType;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\IntersectionType;
@@ -17,6 +16,7 @@ use PhpParser\Node\Name;
 use PhpParser\Node\NullableType;
 use PhpParser\Node\Stmt\PropertyProperty;
 use PhpParser\Node\UnionType;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 
 class MethodElementBuilder
 {
@@ -33,7 +33,7 @@ class MethodElementBuilder
         private string $classname,
         private PropertyProperty $property,
         private null|Identifier|Name|ComplexType $propertyType,
-        private null|Doc $propertyDocComment,
+        private null|PhpDocNode $propertyDocComment,
         private AttributeProcessor $attributeProcessor
     ) {
     }
@@ -112,8 +112,8 @@ class MethodElementBuilder
         return $this->methodSuffix;
     }
 
-    public function getPropertyDocComment(): string
+    public function getPropertyDocComment(): ?PhpDocNode
     {
-        return (string) $this->propertyDocComment?->getText();
+        return $this->propertyDocComment;
     }
 }

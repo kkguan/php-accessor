@@ -10,10 +10,10 @@ namespace PhpAccessor;
 
 use PhpAccessor\File\File;
 use PhpAccessor\Meta\ClassMetadata;
-use PhpAccessor\NodeVisitor\NameResolver;
 use PhpAccessor\Processor\ClassProcessor;
 use PhpParser\Node;
 use PhpParser\NodeTraverser;
+use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
 use PhpParser\PrettyPrinter\Standard;
 use SplFileInfo;
@@ -56,10 +56,11 @@ class Runner
         $stmts = $parser->parse($source);
 
         $traverser = new NodeTraverser();
-        $traverser->addVisitor(new NameResolver());
+        $nameResolver = new NameResolver();
+        $traverser->addVisitor($nameResolver);
         $stmts = $traverser->traverse($stmts);
         $traverser = new NodeTraverser();
-        $classProcessor = new ClassProcessor($this->genProxy);
+        $classProcessor = new ClassProcessor($this->genProxy, $nameResolver->getNameContext());
         $traverser->addVisitor($classProcessor);
         $ast = $traverser->traverse($stmts);
 

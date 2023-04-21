@@ -11,6 +11,9 @@ namespace PhpAccessor\Processor\Method;
 use PhpParser\BuilderFactory;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Return_;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\ReturnTagValueNode;
 
 class GetterMethod extends AbstractMethod
 {
@@ -41,23 +44,23 @@ class GetterMethod extends AbstractMethod
 
     public function generateMethodComment()
     {
-        if (empty($this->fieldDocComment)) {
+        if (empty($this->fieldComment)) {
             return;
         }
 
-        if (!empty($this->fieldTypes) && !\in_array('array', $this->fieldTypes)) {
+        if (empty($varTagValues = $this->fieldComment->getVarTagValues())) {
             return;
         }
 
-        if (!preg_match('/(?<=@var\s)[^\s]+/', $this->fieldDocComment, $matches)) {
-            return;
-        }
-
-        $this->methodComment = <<<DOC
-/**
-    * @return {$matches[0]}
-    */
-DOC;
+        $this->methodComment = (string) new PhpDocNode([
+            new PhpDocTagNode(
+                '@return',
+                new ReturnTagValueNode(
+                    $varTagValues[0]->type,
+                    ''
+                )
+            ),
+        ]);
     }
 
     public function buildMethod(): ClassMethod
