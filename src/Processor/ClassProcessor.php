@@ -12,6 +12,8 @@ use PhpAccessor\File\File;
 use PhpAccessor\Processor\Builder\DataBuilder;
 use PhpAccessor\Processor\Method\AccessorMethod;
 use PhpParser\BuilderFactory;
+use PhpParser\Comment\Doc;
+use PhpParser\NameContext;
 use PhpParser\Node;
 use PhpParser\Node\Attribute;
 use PhpParser\Node\Expr\Include_;
@@ -23,11 +25,34 @@ use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\Node\Stmt\Property;
 use PhpParser\NodeFinder;
 use PhpParser\NodeVisitorAbstract;
+use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
+use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
+use PHPStan\PhpDocParser\Lexer\Lexer;
+use PHPStan\PhpDocParser\Parser\ConstExprParser;
+use PHPStan\PhpDocParser\Parser\PhpDocParser;
+use PHPStan\PhpDocParser\Parser\TokenIterator;
+use PHPStan\PhpDocParser\Parser\TypeParser;
 
 use const DIRECTORY_SEPARATOR;
 
 class ClassProcessor extends NodeVisitorAbstract
 {
+    private const PRIMITIVE_TYPES = [
+        'bool' => 'bool',
+        'boolean' => 'bool',
+        'string' => 'string',
+        'int' => 'int',
+        'integer' => 'int',
+        'float' => 'float',
+        'double' => 'float',
+        'array' => 'array',
+        'object' => 'object',
+        'callable' => 'callable',
+        'resource' => 'resource',
+        'mixed' => 'mixed',
+        'iterable' => 'iterable',
+    ];
+
     /** @var AccessorMethod[] */
     private array $accessorMethods = [];
 
@@ -39,10 +64,18 @@ class ClassProcessor extends NodeVisitorAbstract
 
     private NodeFinder $nodeFinder;
 
+    private Lexer $phpDocLexer;
+
+    private PhpDocParser $phpDocParser;
+
     public function __construct(
-        private bool $genMethod
+        private bool $genMethod,
+        private NameContext $nameContext,
     ) {
         $this->nodeFinder = new NodeFinder();
+        $this->phpDocLexer = new Lexer();
+        $constantExpressionParser = new ConstExprParser();
+        $this->phpDocParser = new PhpDocParser(new TypeParser($constantExpressionParser), $constantExpressionParser);
     }
 
     public function enterNode(Node $node)
@@ -70,7 +103,6 @@ class ClassProcessor extends NodeVisitorAbstract
         if (empty($properties)) {
             return null;
         }
-
         $this->generateAllMethods($node->namespacedName->toString(), $properties, $attributeProcessor);
         /** @var ClassMethod[] $originalClassMethods */
         $originalClassMethods = $this->nodeFinder->findInstanceOf($node, ClassMethod::class);
@@ -112,6 +144,7 @@ class ClassProcessor extends NodeVisitorAbstract
         AttributeProcessor $attributeProcessor,
     ): void {
         foreach ($properties as $property) {
+            $this->processDocComment($property);
             /** @var Attribute[] $attributes */
             $attributes = $this->nodeFinder->findInstanceOf($property->attrGroups, Attribute::class);
             $attributeProcessor->buildPropertyAttributes($property, $attributes);
@@ -119,7 +152,7 @@ class ClassProcessor extends NodeVisitorAbstract
         foreach ($attributeProcessor->getPendingProperties()  as $pendingProperty) {
             $this->accessorMethods = array_merge(
                 $this->accessorMethods,
-                MethodFactory::createFromField($classname, $pendingProperty['prop'], $pendingProperty['type'], $attributeProcessor)
+                MethodFactory::createFromField($classname, $pendingProperty['prop'], $pendingProperty['type'], $pendingProperty['doc'], $attributeProcessor)
             );
         }
     }
@@ -169,5 +202,42 @@ class ClassProcessor extends NodeVisitorAbstract
     public function getTraitAccessor(): TraitAccessor
     {
         return $this->traitAccessor;
+    }
+
+    protected function processDocComment(Node $node): void
+    {
+        if (empty($docComment = $node->getDocComment())) {
+            return;
+        }
+
+        $tokens = new TokenIterator($this->phpDocLexer->tokenize($docComment->getText()));
+
+        $ast = $this->phpDocParser->parse($tokens);
+
+        foreach ($ast->getVarTagValues() as $varTagValueNode) {
+            $typeNode = $varTagValueNode->type;
+            if ($typeNode instanceof ArrayTypeNode) {
+                $typeNode->type->name = $this->resolveTypeName($typeNode->type);
+            } elseif ($typeNode instanceof IdentifierTypeNode) {
+                $typeNode->name = $this->resolveTypeName($typeNode);
+            }
+        }
+
+        $node->setDocComment(new Doc((string) $ast));
+        $node->setAttribute('resolvedDocComment', $ast);
+    }
+
+    protected function resolveTypeName(IdentifierTypeNode $node): string
+    {
+        if (isset(self::PRIMITIVE_TYPES[$node->name])) {
+            return $node->name;
+        }
+
+        $resolvedName = $this->nameContext->getResolvedName(new Node\Name($node->name), Node\Stmt\Use_::TYPE_NORMAL);
+        if (empty($resolvedName)) {
+            return $node->name;
+        }
+
+        return $resolvedName->toCodeString();
     }
 }

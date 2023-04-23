@@ -17,6 +17,7 @@ use PhpParser\Node\ComplexType;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\PropertyProperty;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 
 class MethodFactory
 {
@@ -33,10 +34,11 @@ class MethodFactory
         string $classname,
         PropertyProperty $property,
         null|Identifier|Name|ComplexType $propertyType,
+        null|PhpDocNode $propertyDocComment,
         AttributeProcessor $attributeProcessor
     ): array {
         $accessorMethods = [];
-        $builder = new MethodElementBuilder($classname, $property, $propertyType, $attributeProcessor);
+        $builder = new MethodElementBuilder($classname, $property, $propertyType, $propertyDocComment, $attributeProcessor);
         $builder->build();
         foreach (static::$methodHandlers as $methodHandler) {
             $m = $methodHandler::createFromBuilder($builder);

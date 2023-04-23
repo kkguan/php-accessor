@@ -19,12 +19,16 @@ interface AccessorMethod extends JsonSerializable
 
     public function getFieldName(): string;
 
+    public function getFieldComment(): string;
+
     /**
      * @return string[]
      */
     public function getFieldTypes(): array;
 
     public function getMethodName(): string;
+
+    public function getMethodComment(): string;
 
     public function buildMethod(): ClassMethod;
 }

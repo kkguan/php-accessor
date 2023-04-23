@@ -8,6 +8,8 @@
 
 namespace PhpAccessor\Processor\Method;
 
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
+
 abstract class AbstractMethod implements AccessorMethod
 {
     protected string $name = '';
@@ -16,6 +18,8 @@ abstract class AbstractMethod implements AccessorMethod
 
     protected string $fieldName;
 
+    protected ?PhpDocNode $fieldComment = null;
+
     /** @var string[] */
     protected array $fieldTypes;
 
@@ -23,11 +27,14 @@ abstract class AbstractMethod implements AccessorMethod
 
     protected string $methodSuffix;
 
-    public function __construct($className, $fieldName, $fieldTypes)
+    protected string $methodComment = '';
+
+    public function __construct($className, $fieldName, $fieldTypes, $fieldComment)
     {
         $this->className = $className;
         $this->fieldName = $fieldName;
         $this->fieldTypes = $fieldTypes;
+        $this->fieldComment = $fieldComment;
     }
 
     public function jsonSerialize(): array
@@ -42,7 +49,7 @@ abstract class AbstractMethod implements AccessorMethod
 
     public static function createFromBuilder(MethodElementBuilder $builder): static
     {
-        $obj = new static($builder->getClassname(),  $builder->getFieldName(),$builder->getFieldTypes());
+        $obj = new static($builder->getClassname(),  $builder->getFieldName(),$builder->getFieldTypes(), $builder->getPropertyDocComment());
         $obj->setMethodSuffix($builder->getMethodSuffix());
         $obj->init();
 
@@ -73,6 +80,11 @@ abstract class AbstractMethod implements AccessorMethod
         return $this->fieldTypes;
     }
 
+    public function getFieldComment(): string
+    {
+        return (string) $this->fieldComment;
+    }
+
     public function getMethodName(): string
     {
         return $this->methodName;
@@ -81,5 +93,10 @@ abstract class AbstractMethod implements AccessorMethod
     public function getName(): string
     {
         return $this->name;
+    }
+
+    public function getMethodComment(): string
+    {
+        return $this->methodComment;
     }
 }

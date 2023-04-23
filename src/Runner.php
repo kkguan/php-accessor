@@ -56,10 +56,11 @@ class Runner
         $stmts = $parser->parse($source);
 
         $traverser = new NodeTraverser();
-        $traverser->addVisitor(new NameResolver());
+        $nameResolver = new NameResolver();
+        $traverser->addVisitor($nameResolver);
         $stmts = $traverser->traverse($stmts);
         $traverser = new NodeTraverser();
-        $classProcessor = new ClassProcessor($this->genProxy);
+        $classProcessor = new ClassProcessor($this->genProxy, $nameResolver->getNameContext());
         $traverser->addVisitor($classProcessor);
         $ast = $traverser->traverse($stmts);
 

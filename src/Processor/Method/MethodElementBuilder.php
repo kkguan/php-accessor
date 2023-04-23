@@ -16,6 +16,7 @@ use PhpParser\Node\Name;
 use PhpParser\Node\NullableType;
 use PhpParser\Node\Stmt\PropertyProperty;
 use PhpParser\Node\UnionType;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 
 class MethodElementBuilder
 {
@@ -32,6 +33,7 @@ class MethodElementBuilder
         private string $classname,
         private PropertyProperty $property,
         private null|Identifier|Name|ComplexType $propertyType,
+        private null|PhpDocNode $propertyDocComment,
         private AttributeProcessor $attributeProcessor
     ) {
     }
@@ -108,5 +110,10 @@ class MethodElementBuilder
     public function getMethodSuffix(): string
     {
         return $this->methodSuffix;
+    }
+
+    public function getPropertyDocComment(): ?PhpDocNode
+    {
+        return $this->propertyDocComment;
     }
 }

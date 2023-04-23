@@ -11,6 +11,9 @@ namespace PhpAccessor\Processor\Method;
 use PhpParser\BuilderFactory;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Return_;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\ReturnTagValueNode;
 
 class GetterMethod extends AbstractMethod
 {
@@ -18,20 +21,15 @@ class GetterMethod extends AbstractMethod
     /** @var string[] */
     protected array $returnTypes = [];
 
-    public function __construct($className, $fieldName, $fieldTypes)
-    {
-        parent::__construct($className, $fieldName, $fieldTypes);
-    }
-
     public function init()
     {
         $this->generateMethodName();
         $this->generateReturnTypes();
+        $this->generateMethodComment();
     }
 
     private function generateMethodName()
     {
-//        $this->methodName = 'get' . ucfirst($this->fieldName);
         $this->methodName = 'get' . $this->methodSuffix;
     }
 
@@ -44,6 +42,27 @@ class GetterMethod extends AbstractMethod
         }
     }
 
+    public function generateMethodComment()
+    {
+        if (empty($this->fieldComment)) {
+            return;
+        }
+
+        if (empty($varTagValues = $this->fieldComment->getVarTagValues())) {
+            return;
+        }
+
+        $this->methodComment = (string) new PhpDocNode([
+            new PhpDocTagNode(
+                '@return',
+                new ReturnTagValueNode(
+                    $varTagValues[0]->type,
+                    ''
+                )
+            ),
+        ]);
+    }
+
     public function buildMethod(): ClassMethod
     {
         $builder = new BuilderFactory();
@@ -52,6 +71,7 @@ class GetterMethod extends AbstractMethod
             ->method($this->methodName)
             ->makePublic()
             ->setReturnType(implode('|', $this->returnTypes))
+            ->setDocComment($this->methodComment)
             ->addStmt(
                 new Return_(
                     $builder->propertyFetch($builder->var('this'), $this->fieldName)
