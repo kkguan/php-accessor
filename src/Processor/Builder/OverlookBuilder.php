@@ -14,21 +14,26 @@ use PhpParser\Node\Attribute;
 
 class OverlookBuilder
 {
-    private Attribute $attribute;
+    /**
+     * @var Attribute[]
+     */
+    private array $attributes;
 
-    public function setAttribute(Attribute $attribute): static
+    public function setAttributes(array $attributes): self
     {
-        $this->attribute = $attribute;
+        $this->attributes = $attributes;
 
         return $this;
     }
 
     public function build(): ?Overlook
     {
-        if (OverlookAttribute::class != $this->attribute->name->toString()) {
-            return null;
+        foreach ($this->attributes as $attribute) {
+            if (OverlookAttribute::class == $attribute->name->toString()) {
+                return new Overlook();
+            }
         }
 
-        return new Overlook();
+        return null;
     }
 }

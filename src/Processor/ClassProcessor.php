@@ -25,6 +25,7 @@ use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\Node\Stmt\Property;
 use PhpParser\NodeFinder;
 use PhpParser\NodeVisitorAbstract;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
 use PHPStan\PhpDocParser\Lexer\Lexer;
@@ -144,16 +145,19 @@ class ClassProcessor extends NodeVisitorAbstract
         AttributeProcessor $attributeProcessor,
     ): void {
         foreach ($properties as $property) {
-            $this->processDocComment($property);
             /** @var Attribute[] $attributes */
             $attributes = $this->nodeFinder->findInstanceOf($property->attrGroups, Attribute::class);
-            $attributeProcessor->buildPropertyAttributes($property, $attributes);
-        }
-        foreach ($attributeProcessor->getPendingProperties()  as $pendingProperty) {
-            $this->accessorMethods = array_merge(
-                $this->accessorMethods,
-                MethodFactory::createFromField($classname, $pendingProperty['prop'], $pendingProperty['type'], $pendingProperty['doc'], $attributeProcessor)
-            );
+            if ($attributeProcessor->ignoreProperty($attributes)) {
+                continue;
+            }
+
+            $docComment = $this->buildDocComment($property);
+            foreach ($property->props as $prop) {
+                $this->accessorMethods = array_merge(
+                    $this->accessorMethods,
+                    MethodFactory::createFromField($classname, $prop, $property->type, $docComment, $attributeProcessor)
+                );
+            }
         }
     }
 
@@ -204,16 +208,14 @@ class ClassProcessor extends NodeVisitorAbstract
         return $this->traitAccessor;
     }
 
-    protected function processDocComment(Node $node): void
+    protected function buildDocComment(Node $node): ?PhpDocNode
     {
         if (empty($docComment = $node->getDocComment())) {
-            return;
+            return null;
         }
 
         $tokens = new TokenIterator($this->phpDocLexer->tokenize($docComment->getText()));
-
         $ast = $this->phpDocParser->parse($tokens);
-
         foreach ($ast->getVarTagValues() as $varTagValueNode) {
             $typeNode = $varTagValueNode->type;
             if ($typeNode instanceof ArrayTypeNode) {
@@ -222,9 +224,9 @@ class ClassProcessor extends NodeVisitorAbstract
                 $typeNode->name = $this->resolveTypeName($typeNode);
             }
         }
-
         $node->setDocComment(new Doc((string) $ast));
-        $node->setAttribute('resolvedDocComment', $ast);
+
+        return $ast;
     }
 
     protected function resolveTypeName(IdentifierTypeNode $node): string

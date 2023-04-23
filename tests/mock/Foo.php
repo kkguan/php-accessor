@@ -25,10 +25,13 @@ class Foo extends SuperFoo implements FooInterface1, FooInterface2
     //    private $mixd;
 
     /**
+     * @author xxxx
+     *
      * @var FooSub[]
      */
     private array $names;
     #[Overlook]
+    #[Overlook22]
     private string $ignore;
 
     private string|array|FooSub $name;

@@ -11,18 +11,10 @@ namespace PhpAccessor\Processor;
 use PhpAccessor\Processor\Attribute\Data;
 use PhpAccessor\Processor\Builder\OverlookBuilder;
 use PhpParser\Node\Attribute;
-use PhpParser\Node\ComplexType;
-use PhpParser\Node\Identifier;
-use PhpParser\Node\Name;
-use PhpParser\Node\Stmt\Property;
-use PhpParser\Node\Stmt\PropertyProperty;
 
 class AttributeProcessor
 {
     private Data $data;
-
-    /** @var array<array{prop:PropertyProperty, type:Identifier|Name|ComplexType|null}> */
-    private array $pendingProperties = [];
 
     private bool $isPending = false;
 
@@ -53,28 +45,15 @@ class AttributeProcessor
     /**
      * @param Attribute[] $attributes
      */
-    public function buildPropertyAttributes(Property $property, array $attributes): void
+    public function ignoreProperty(array $attributes): bool
     {
-        foreach ($attributes as $attribute) {
-            $overlookBuilder = new OverlookBuilder();
-            $overlookBuilder->setAttribute($attribute);
-            $overlook = $overlookBuilder->build();
+        $overlookBuilder = ( new OverlookBuilder())
+            ->setAttributes($attributes);
+        $overlook = $overlookBuilder->build();
+        if ($overlook && $overlook->isOverlook()) {
+            return true;
         }
 
-        foreach ($property->props as $prop) {
-            if (isset($overlook) && $overlook->isOverlook()) {
-                continue;
-            }
-
-            $this->pendingProperties[] = ['prop' => $prop, 'type' => $property->type, 'doc' => $property->getAttribute('resolvedDocComment') ?? null];
-        }
-    }
-
-    /**
-     * @return array<array{prop:PropertyProperty, type:Identifier|Name|ComplexType|null}>
-     */
-    public function getPendingProperties(): array
-    {
-        return $this->pendingProperties;
+        return false;
     }
 }
