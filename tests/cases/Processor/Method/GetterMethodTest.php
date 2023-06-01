@@ -14,6 +14,7 @@ use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\VarTagValueNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
+use PHPStan\PhpDocParser\Ast\Type\GenericTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
 use PHPUnit\Framework\TestCase;
 
@@ -95,6 +96,60 @@ class GetterMethodTest extends TestCase
                     ),
                 ]),
                 "/**\n * @return string[]\n */",
+            ],
+            [
+                'array4', ['array'],
+                new PhpDocNode([
+                    new PhpDocTagNode(
+                        '@var',
+                        new VarTagValueNode(
+                            new GenericTypeNode(
+                                new IdentifierTypeNode('array'),
+                                [new IdentifierTypeNode('string')]
+                            ),
+                            '',
+                            ''
+                        )
+                    ),
+                ]),
+                "/**\n * @return array<string>\n */",
+            ],
+            [
+                'array5', ['array'],
+                new PhpDocNode([
+                    new PhpDocTagNode(
+                        '@var',
+                        new VarTagValueNode(
+                            new GenericTypeNode(
+                                new IdentifierTypeNode('array'),
+                                [new IdentifierTypeNode('\PhpAccessor\Test\Mock\FooSub')]
+                            ),
+                            '',
+                            ''
+                        )
+                    ),
+                ]),
+                "/**\n * @return array<\PhpAccessor\Test\Mock\FooSub>\n */",
+            ],
+            [
+                'array6', ['array'],
+                new PhpDocNode([
+                    new PhpDocTagNode(
+                        '@var',
+                        new VarTagValueNode(
+                            new GenericTypeNode(
+                                new IdentifierTypeNode('array'),
+                                [
+                                    new IdentifierTypeNode('string'),
+                                    new IdentifierTypeNode('\PhpAccessor\Test\Mock\FooSub'),
+                                ]
+                            ),
+                            '',
+                            ''
+                        )
+                    ),
+                ]),
+                "/**\n * @return array<string, \PhpAccessor\Test\Mock\FooSub>\n */",
             ],
             [
                 'foo', [],

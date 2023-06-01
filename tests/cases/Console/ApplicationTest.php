@@ -21,11 +21,13 @@ class ApplicationTest extends TestCase
     {
         $ref = new ReflectionClass(\PhpAccessor\Test\Mock\Foo::class);
         $ref2 = new ReflectionClass(\PhpAccessor\Test\Mock\SuperFoo::class);
+        $ref3 = new ReflectionClass(\PhpAccessor\Test\Mock\GenerateMethodComment::class);
         $input = new ArrayInput([
             'command' => 'generate',
             'path' => [
                 $ref->getFileName(),
                 $ref2->getFileName(),
+                $ref3->getFileName(),
             ],
             '--gen-meta' => 'yes',
             '--dir' => __ROOT__ . DIRECTORY_SEPARATOR . '.php-accessor',
