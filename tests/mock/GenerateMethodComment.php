@@ -8,6 +8,9 @@
 
 namespace PhpAccessor\Test\Mock;
 
+use PhpAccessor\Attribute\Data;
+
+#[Data]
 class GenerateMethodComment
 {
     /**
@@ -33,6 +36,31 @@ class GenerateMethodComment
      * @var string[]
      */
     public array $array3;
+
+    /**
+     * @var array<string>
+     */
+    public array $array4;
+
+    /**
+     * @var array<FooSub>
+     */
+    public array $array5;
+
+    /**
+     * @var array<string, FooSub>
+     */
+    public array $array6;
+
+    /**
+     * @var array<string, FooSub>|null
+     */
+    public array $array7;
+
+    /**
+     * @var array{user: Foo, orders: array<FooSub>}
+     */
+    public array $array8;
 
     /**
      * @var int

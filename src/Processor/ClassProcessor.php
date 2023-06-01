@@ -26,8 +26,12 @@ use PhpParser\Node\Stmt\Property;
 use PhpParser\NodeFinder;
 use PhpParser\NodeVisitorAbstract;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
+use PHPStan\PhpDocParser\Ast\Type\ArrayShapeNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
+use PHPStan\PhpDocParser\Ast\Type\GenericTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
+use PHPStan\PhpDocParser\Ast\Type\TypeNode;
+use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
 use PHPStan\PhpDocParser\Lexer\Lexer;
 use PHPStan\PhpDocParser\Parser\ConstExprParser;
 use PHPStan\PhpDocParser\Parser\PhpDocParser;
@@ -39,6 +43,7 @@ use const DIRECTORY_SEPARATOR;
 class ClassProcessor extends NodeVisitorAbstract
 {
     private const PRIMITIVE_TYPES = [
+        'null' => 'null',
         'bool' => 'bool',
         'boolean' => 'bool',
         'string' => 'string',
@@ -217,16 +222,36 @@ class ClassProcessor extends NodeVisitorAbstract
         $tokens = new TokenIterator($this->phpDocLexer->tokenize($docComment->getText()));
         $ast = $this->phpDocParser->parse($tokens);
         foreach ($ast->getVarTagValues() as $varTagValueNode) {
-            $typeNode = $varTagValueNode->type;
-            if ($typeNode instanceof ArrayTypeNode) {
-                $typeNode->type->name = $this->resolveTypeName($typeNode->type);
-            } elseif ($typeNode instanceof IdentifierTypeNode) {
-                $typeNode->name = $this->resolveTypeName($typeNode);
-            }
+            $this->resolveTypeNode($varTagValueNode->type);
         }
         $node->setDocComment(new Doc((string) $ast));
 
         return $ast;
+    }
+
+    protected function resolveTypeNode(TypeNode $typeNode): void
+    {
+        if ($typeNode instanceof IdentifierTypeNode) {
+            $typeNode->name = $this->resolveTypeName($typeNode);
+
+            return;
+        }
+
+        if ($typeNode instanceof ArrayTypeNode) {
+            $this->resolveTypeNode($typeNode->type);
+        } elseif ($typeNode instanceof GenericTypeNode) {
+            foreach ($typeNode->genericTypes as $genericType) {
+                $this->resolveTypeNode($genericType);
+            }
+        } elseif ($typeNode instanceof UnionTypeNode) {
+            foreach ($typeNode->types as $type) {
+                $this->resolveTypeNode($type);
+            }
+        } elseif ($typeNode instanceof ArrayShapeNode) {
+            foreach ($typeNode->items as $item) {
+                $this->resolveTypeNode($item->valueType);
+            }
+        }
     }
 
     protected function resolveTypeName(IdentifierTypeNode $node): string
