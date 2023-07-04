@@ -8,6 +8,7 @@
 
 namespace PhpAccessor\Processor;
 
+use PhpAccessor\Attribute\Data;
 use PhpAccessor\File\File;
 use PhpAccessor\Processor\Builder\DataBuilder;
 use PhpAccessor\Processor\Method\AccessorMethod;
@@ -184,6 +185,21 @@ class ClassProcessor extends NodeVisitorAbstract
             ->class($node->name)
             ->addStmt($builder->useTrait('\\' . $this->traitAccessor->getClassName()));
         $node->extends && $class->extend($node->extends);
+
+        foreach ($node->attrGroups as $attrGroup) {
+            $ignore = false;
+            foreach ($attrGroup->attrs as $attr) {
+                if (Data::class == $attr->name->toString()) {
+                    $ignore = true;
+                    break;
+                }
+            }
+            if ($ignore) {
+                continue;
+            }
+
+            $class->addAttribute($attrGroup);
+        }
         foreach ($node->implements as $implement) {
             $class->implement($implement);
         }

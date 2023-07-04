@@ -12,6 +12,7 @@ use PhpAccessor\Attribute\Data;
 use PhpAccessor\Attribute\Map\NamingConvention;
 use PhpAccessor\Attribute\Overlook;
 
+#[TestAttribute]
 #[Data(namingConvention: NamingConvention::UPPER_CAMEL_CASE)]
 class Foo extends SuperFoo implements FooInterface1, FooInterface2
 {
