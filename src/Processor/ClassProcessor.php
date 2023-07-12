@@ -185,6 +185,7 @@ class ClassProcessor extends NodeVisitorAbstract
             ->class($node->name)
             ->addStmt($builder->useTrait('\\' . $this->traitAccessor->getClassName()));
         $node->extends && $class->extend($node->extends);
+        $node->isAbstract() && $class->makeAbstract();
 
         foreach ($node->attrGroups as $attrGroup) {
             $ignore = false;
