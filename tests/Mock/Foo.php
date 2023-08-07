@@ -1,11 +1,11 @@
 <?php
 
-/*
+declare(strict_types=1);
+/**
  * This file is part of the PhpAccessor package.
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
 namespace PhpAccessor\Test\Mock;
 
 use PhpAccessor\Attribute\Data;
@@ -26,11 +26,10 @@ class Foo extends SuperFoo implements FooInterface1, FooInterface2
     //    private $mixd;
 
     /**
-     * @author xxxx
-     *
      * @var FooSub[]
      */
     private array $names;
+
     #[Overlook]
     #[Overlook22]
     private string $ignore;
@@ -46,9 +45,9 @@ class Foo extends SuperFoo implements FooInterface1, FooInterface2
 
     public function call()
     {
-        $this->setName(222);
+        $this->setName([]);
         $this->setTestId2(213123);
     }
 
-//    private FooSub $fooSub;
+    //    private FooSub $fooSub;
 }

@@ -10,8 +10,7 @@
     },
     "autoload-dev" : {
         "psr-4" : {
-            "PhpAccessor\\Test\\Mock\\" : "tests/mock/",
-            "PhpAccessor\\Test\\" : "tests/cases/"
+            "PhpAccessor\\Test\\" : "tests"
         }
     },
     "require": {
@@ -28,9 +27,7 @@
         "symfony/var-dumper": "^6.0"
     },
     "scripts": {
-        "test": [
-            "vendor/bin/phpunit"
-        ]
+        "test": "@php vendor/bin/phpunit -c phpunit.xml --colors=always"
     },
     "bin": [
         "php-accessor"

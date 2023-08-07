@@ -1,12 +1,12 @@
 <?php
 
-/*
+declare(strict_types=1);
+/**
  * This file is part of the PhpAccessor package.
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
-namespace PhpAccessor\Test\Processor\Method;
+namespace PhpAccessor\Test\Cases\Processor\Method;
 
 use PhpAccessor\Processor\Method\GetterMethod;
 use PhpAccessor\Test\Mock\GenerateMethodComment;
@@ -18,6 +18,10 @@ use PHPStan\PhpDocParser\Ast\Type\GenericTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ * @coversNothing
+ */
 class GetterMethodTest extends TestCase
 {
     /**
@@ -63,7 +67,7 @@ class GetterMethodTest extends TestCase
                         )
                     ),
                 ]),
-                "/**\n * @return \PhpAccessor\Test\Mock\FooSub[]\n */",
+                "/**\n * @return \\PhpAccessor\\Test\\Mock\\FooSub[]\n */",
             ],
             [
                 'array2', ['array'],
@@ -79,7 +83,7 @@ class GetterMethodTest extends TestCase
                         )
                     ),
                 ]),
-                "/**\n * @return \PhpAccessor\Test\Mock\FooSub[]\n */",
+                "/**\n * @return \\PhpAccessor\\Test\\Mock\\FooSub[]\n */",
             ],
             [
                 'array3', ['array'],
@@ -129,7 +133,7 @@ class GetterMethodTest extends TestCase
                         )
                     ),
                 ]),
-                "/**\n * @return array<\PhpAccessor\Test\Mock\FooSub>\n */",
+                "/**\n * @return array<\\PhpAccessor\\Test\\Mock\\FooSub>\n */",
             ],
             [
                 'array6', ['array'],
@@ -149,7 +153,7 @@ class GetterMethodTest extends TestCase
                         )
                     ),
                 ]),
-                "/**\n * @return array<string, \PhpAccessor\Test\Mock\FooSub>\n */",
+                "/**\n * @return array<string, \\PhpAccessor\\Test\\Mock\\FooSub>\n */",
             ],
             [
                 'foo', [],

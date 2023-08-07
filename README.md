@@ -50,6 +50,10 @@ class Entity
   - `NamingConvention::UPPER_CAMEL_CASE`: 大驼峰
   - `NamingConvention::LOWER_CAMEL_CASE`: 小驼峰
   - `NamingConvention::NONE`: 首字母大写,系统默认配置
+* `accessorType`：需要生成的访问器类型
+  - `AccessorType::GETTER`: 仅生成getter
+  - `AccessorType::SETTER`: 仅生成setter
+  - `AccessorType::BOTH`: 生成getter及setter，系统默认配置
 
 示例
 
@@ -61,7 +65,7 @@ namespace App;
 use PhpAccessor\Attribute\Data;
 use PhpAccessor\Attribute\Map\NamingConvention;
 
-#[Data(namingConvention: NamingConvention::UPPER_CAMEL_CASE)]
+#[Data(namingConvention: NamingConvention::UPPER_CAMEL_CASE, accessorType: AccessorType::GETTER)]
 class Entity
 {
     private int $id;

@@ -1,11 +1,11 @@
 <?php
 
-/*
+declare(strict_types=1);
+/**
  * This file is part of the PhpAccessor package.
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
 namespace PhpAccessor\Processor\Method;
 
 use PhpAccessor\Processor\AttributeProcessor;
@@ -18,16 +18,9 @@ use PhpParser\Node\Stmt\PropertyProperty;
 use PhpParser\Node\UnionType;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 
-class MethodElementBuilder
+class FieldMetadataBuilder
 {
-    protected string $fieldName;
-
-    /**
-     * @var string[]
-     */
-    protected array $fieldTypes = [];
-
-    protected string $methodSuffix;
+    private FieldMetadata $fieldMetadata;
 
     public function __construct(
         private string $classname,
@@ -36,41 +29,41 @@ class MethodElementBuilder
         private null|PhpDocNode $propertyDocComment,
         private AttributeProcessor $attributeProcessor
     ) {
+        $this->fieldMetadata = new FieldMetadata();
     }
 
-    public function build(): void
+    public function build(): FieldMetadata
     {
-        $this->fieldName = $this->property->name->toString();
-        $this->buildMethodName();
+        $this->fieldMetadata->setClassname($this->classname);
+        $this->fieldMetadata->setFieldName($this->property->name->toString());
+        $this->fieldMetadata->setComment($this->propertyDocComment);
+        $this->fieldMetadata->setMethodSuffix($this->attributeProcessor->buildMethodSuffixFromField($this->fieldMetadata->getFieldName()));
         $this->buildFieldTypes($this->propertyType);
-    }
 
-    private function buildMethodName(): void
-    {
-        $this->methodSuffix = $this->attributeProcessor->buildMethodSuffixFromField($this->fieldName);
+        return $this->fieldMetadata;
     }
 
     private function buildFieldTypes($propertyType): void
     {
-        if (null == $propertyType) {
+        if ($propertyType == null) {
             return;
         }
 
         if ($propertyType instanceof Identifier) {
-            $this->fieldTypes[] = $propertyType->name;
+            $this->fieldMetadata->addFieldType($propertyType->name);
 
             return;
         }
 
         if ($propertyType instanceof NullableType) {
-            $this->fieldTypes[] = 'null';
+            $this->fieldMetadata->addFieldType('null');
             $this->buildFieldTypes($propertyType->type);
 
             return;
         }
 
         if ($propertyType instanceof Name) {
-            $this->fieldTypes[] = '\\' . implode('\\', $propertyType->parts);
+            $this->fieldMetadata->addFieldType('\\' . implode('\\', $propertyType->parts));
 
             return;
         }
@@ -90,30 +83,5 @@ class MethodElementBuilder
 
             return;
         }
-    }
-
-    public function getFieldName(): string
-    {
-        return $this->fieldName;
-    }
-
-    public function getFieldTypes(): array
-    {
-        return $this->fieldTypes;
-    }
-
-    public function getClassname(): string
-    {
-        return $this->classname;
-    }
-
-    public function getMethodSuffix(): string
-    {
-        return $this->methodSuffix;
-    }
-
-    public function getPropertyDocComment(): ?PhpDocNode
-    {
-        return $this->propertyDocComment;
     }
 }

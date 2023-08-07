@@ -1,22 +1,20 @@
 <?php
 
-/*
+declare(strict_types=1);
+/**
  * This file is part of the PhpAccessor package.
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
 namespace PhpAccessor\Processor;
 
 use PhpAccessor\Attribute\Data;
 use PhpAccessor\File\File;
-use PhpAccessor\Processor\Builder\DataBuilder;
 use PhpAccessor\Processor\Method\AccessorMethod;
 use PhpParser\BuilderFactory;
 use PhpParser\Comment\Doc;
 use PhpParser\NameContext;
 use PhpParser\Node;
-use PhpParser\Node\Attribute;
 use PhpParser\Node\Expr\Include_;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Class_;
@@ -38,6 +36,8 @@ use PHPStan\PhpDocParser\Parser\ConstExprParser;
 use PHPStan\PhpDocParser\Parser\PhpDocParser;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
+
+use function in_array;
 
 use const DIRECTORY_SEPARATOR;
 
@@ -87,21 +87,13 @@ class ClassProcessor extends NodeVisitorAbstract
 
     public function enterNode(Node $node)
     {
-        if (!$node instanceof Class_ || empty($node->attrGroups)) {
+        if (! $node instanceof Class_ || empty($node->attrGroups)) {
             return null;
         }
 
         $this->classname = '\\' . $node->namespacedName->toString();
-        $attributeProcessor = new AttributeProcessor();
-
-        /** @var Attribute[] $attributes */
-        $attributes = $this->nodeFinder->findInstanceOf($node->attrGroups, Attribute::class);
-        foreach ($attributes as $attribute) {
-            $dataBuilder = new DataBuilder();
-            $attributeProcessor->setData($dataBuilder->setAttribute($attribute)->build());
-        }
-
-        if (!$attributeProcessor->isPending()) {
+        $attributeProcessor = new AttributeProcessor($node);
+        if (! $attributeProcessor->isPending()) {
             return null;
         }
 
@@ -110,15 +102,10 @@ class ClassProcessor extends NodeVisitorAbstract
         if (empty($properties)) {
             return null;
         }
+
         $this->generateAllMethods($node->namespacedName->toString(), $properties, $attributeProcessor);
-        /** @var ClassMethod[] $originalClassMethods */
-        $originalClassMethods = $this->nodeFinder->findInstanceOf($node, ClassMethod::class);
-        $originalClassMethodNames = [];
-        foreach ($originalClassMethods as $originalClassMethod) {
-            $originalClassMethodNames[] = $originalClassMethod->name->toString();
-        }
-        $this->buildTraitAccessor($originalClassMethodNames);
-        if (empty($this->accessorMethods) || !$this->genMethod) {
+        $this->buildTraitAccessor($node);
+        if (empty($this->accessorMethods) || ! $this->genMethod) {
             return null;
         }
 
@@ -129,7 +116,7 @@ class ClassProcessor extends NodeVisitorAbstract
 
     public function afterTraverse(array $nodes)
     {
-        if (!$this->genCompleted) {
+        if (! $this->genCompleted) {
             return null;
         }
         // TODO:待优化
@@ -140,74 +127,6 @@ class ClassProcessor extends NodeVisitorAbstract
         array_unshift($namespace->stmts, $include);
 
         return $nodes;
-    }
-
-    /**
-     * @param Property[] $properties
-     */
-    private function generateAllMethods(
-        string $classname,
-        array $properties,
-        AttributeProcessor $attributeProcessor,
-    ): void {
-        foreach ($properties as $property) {
-            /** @var Attribute[] $attributes */
-            $attributes = $this->nodeFinder->findInstanceOf($property->attrGroups, Attribute::class);
-            if ($attributeProcessor->ignoreProperty($attributes)) {
-                continue;
-            }
-
-            $docComment = $this->buildDocComment($property);
-            foreach ($property->props as $prop) {
-                $this->accessorMethods = array_merge(
-                    $this->accessorMethods,
-                    MethodFactory::createFromField($classname, $prop, $property->type, $docComment, $attributeProcessor)
-                );
-            }
-        }
-    }
-
-    private function buildTraitAccessor($originalClassMethodNames): void
-    {
-        $this->traitAccessor = new TraitAccessor($this->classname);
-        foreach ($this->accessorMethods as $accessorMethod) {
-            if (\in_array($accessorMethod->getMethodName(), $originalClassMethodNames)) {
-                continue;
-            }
-            $this->traitAccessor->addAccessorMethod($accessorMethod);
-        }
-    }
-
-    private function rebuildClass(Class_ $node): Class_
-    {
-        $builder = new BuilderFactory();
-        $class = $builder
-            ->class($node->name)
-            ->addStmt($builder->useTrait('\\' . $this->traitAccessor->getClassName()));
-        $node->extends && $class->extend($node->extends);
-        $node->isAbstract() && $class->makeAbstract();
-
-        foreach ($node->attrGroups as $attrGroup) {
-            $ignore = false;
-            foreach ($attrGroup->attrs as $attr) {
-                if (Data::class == $attr->name->toString()) {
-                    $ignore = true;
-                    break;
-                }
-            }
-            if ($ignore) {
-                continue;
-            }
-
-            $class->addAttribute($attrGroup);
-        }
-        foreach ($node->implements as $implement) {
-            $class->implement($implement);
-        }
-        $newNode = $class->getNode();
-        $newNode->stmts = array_merge($newNode->stmts, $node->stmts);
-
-        return $newNode;
     }
 
     public function isGenCompleted(): bool
@@ -283,5 +202,80 @@ class ClassProcessor extends NodeVisitorAbstract
         }
 
         return $resolvedName->toCodeString();
+    }
+
+    /**
+     * @param Property[] $properties
+     */
+    private function generateAllMethods(
+        string $classname,
+        array $properties,
+        AttributeProcessor $attributeProcessor,
+    ): void {
+        foreach ($properties as $property) {
+            if ($attributeProcessor->ignoreProperty($property)) {
+                continue;
+            }
+
+            $docComment = $this->buildDocComment($property);
+            foreach ($property->props as $prop) {
+                $this->accessorMethods = array_merge(
+                    $this->accessorMethods,
+                    MethodFactory::createFromField($classname, $prop, $property->type, $docComment, $attributeProcessor)
+                );
+            }
+        }
+    }
+
+    private function buildTraitAccessor(Node $node): void
+    {
+        /** @var ClassMethod[] $originalClassMethods */
+        $originalClassMethods = $this->nodeFinder->findInstanceOf($node, ClassMethod::class);
+        $originalClassMethodNames = [];
+        foreach ($originalClassMethods as $originalClassMethod) {
+            $originalClassMethodNames[] = $originalClassMethod->name->toString();
+        }
+
+        $this->traitAccessor = new TraitAccessor($this->classname);
+        foreach ($this->accessorMethods as $accessorMethod) {
+            if (in_array($accessorMethod->getMethodName(), $originalClassMethodNames)) {
+                continue;
+            }
+            $this->traitAccessor->addAccessorMethod($accessorMethod);
+        }
+    }
+
+    private function rebuildClass(Class_ $node): Class_
+    {
+        $builder = new BuilderFactory();
+        $class = $builder
+            ->class($node->name->toString())
+            ->addStmt($builder->useTrait('\\' . $this->traitAccessor->getClassName()));
+        $node->extends && $class->extend($node->extends);
+        $node->isAbstract() && $class->makeAbstract();
+
+        foreach ($node->attrGroups as $attrGroup) {
+            $ignore = false;
+            foreach ($attrGroup->attrs as $attr) {
+                if ($attr->name->toString() == Data::class) {
+                    $ignore = true;
+                    break;
+                }
+            }
+            if ($ignore) {
+                continue;
+            }
+
+            $class->addAttribute($attrGroup);
+        }
+
+        foreach ($node->implements as $implement) {
+            $class->implement($implement);
+        }
+
+        $newNode = $class->getNode();
+        $newNode->stmts = array_merge($newNode->stmts, $node->stmts);
+
+        return $newNode;
     }
 }

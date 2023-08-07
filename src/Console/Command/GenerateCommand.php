@@ -1,11 +1,11 @@
 <?php
 
-/*
+declare(strict_types=1);
+/**
  * This file is part of the PhpAccessor package.
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
 namespace PhpAccessor\Console\Command;
 
 use ArrayIterator;
@@ -33,8 +33,7 @@ final class GenerateCommand extends Command
                     new InputOption('gen-proxy', '', InputOption::VALUE_REQUIRED, 'The proxy class should be generated (can be yes or no).'),
                 ]
             )
-            ->setDescription('Fixes a directory or a file.')
-        ;
+            ->setDescription('Fixes a directory or a file.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -50,7 +49,8 @@ final class GenerateCommand extends Command
             ],
             getcwd()
         );
-        if (!$resolver->getGenProxy() && !$resolver->getGenMeta()) {
+
+        if (! $resolver->getGenProxy() && ! $resolver->getGenMeta()) {
             $io->error('Both metadata and proxy are set to false');
 
             return Command::FAILURE;
@@ -66,7 +66,7 @@ final class GenerateCommand extends Command
         );
         $runner->generate();
         foreach ($runner->getGeneratedFiles() as $proxyFile) {
-            $io->writeln('[generated-file] ' . $proxyFile, true);
+            $io->writeln('[generated-file] ' . $proxyFile);
         }
 
         return Command::SUCCESS;

@@ -1,11 +1,11 @@
 <?php
 
-/*
+declare(strict_types=1);
+/**
  * This file is part of the PhpAccessor package.
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
 namespace PhpAccessor\Processor\Method;
 
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
@@ -47,10 +47,10 @@ abstract class AbstractMethod implements AccessorMethod
         return $json;
     }
 
-    public static function createFromBuilder(MethodElementBuilder $builder): static
+    public static function createFromFieldMetadata(FieldMetadata $fieldMetadata): static
     {
-        $obj = new static($builder->getClassname(),  $builder->getFieldName(),$builder->getFieldTypes(), $builder->getPropertyDocComment());
-        $obj->setMethodSuffix($builder->getMethodSuffix());
+        $obj = new static($fieldMetadata->getClassname(),  $fieldMetadata->getFieldName(),$fieldMetadata->getFieldTypes(), $fieldMetadata->getComment());
+        $obj->setMethodSuffix($fieldMetadata->getMethodSuffix());
         $obj->init();
 
         return $obj;

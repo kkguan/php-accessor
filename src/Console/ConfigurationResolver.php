@@ -1,16 +1,19 @@
 <?php
 
-/*
+declare(strict_types=1);
+/**
  * This file is part of the PhpAccessor package.
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
 namespace PhpAccessor\Console;
 
 use PhpAccessor\Exception\InvalidConfigurationException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
+
+use function array_key_exists;
+use function is_string;
 
 use const DIRECTORY_SEPARATOR;
 
@@ -48,7 +51,7 @@ class ConfigurationResolver
 
     public function getFinder(): iterable
     {
-        if (null === $this->finder) {
+        if ($this->finder === null) {
             $this->finder = $this->resolveFinder();
         }
 
@@ -73,7 +76,6 @@ class ConfigurationResolver
                 $this->dir = $cwd;
             } else {
                 $this->dir = $dir;
-//                $this->dir = $this->buildAbsolutePaths([$dir])[0];
             }
         }
 
@@ -82,8 +84,8 @@ class ConfigurationResolver
 
     public function getGenMeta(): bool
     {
-        if (!isset($this->genMeta)) {
-            if (null === $this->options['gen-meta']) {
+        if (! isset($this->genMeta)) {
+            if ($this->options['gen-meta'] === null) {
                 $this->genMeta = false;
             } else {
                 $this->genMeta = $this->resolveOptionBooleanValue('gen-meta');
@@ -95,8 +97,8 @@ class ConfigurationResolver
 
     public function getGenProxy(): bool
     {
-        if (!isset($this->genProxy)) {
-            if (null === $this->options['gen-proxy']) {
+        if (! isset($this->genProxy)) {
+            if ($this->options['gen-proxy'] === null) {
                 $this->genProxy = true;
             } else {
                 $this->genProxy = $this->resolveOptionBooleanValue('gen-proxy');
@@ -110,15 +112,15 @@ class ConfigurationResolver
     {
         $value = $this->options[$optionName];
 
-        if (!\is_string($value)) {
+        if (! is_string($value)) {
             throw new InvalidConfigurationException(sprintf('Expected boolean or string value for option "%s".', $optionName));
         }
 
-        if ('yes' === $value) {
+        if ($value === 'yes') {
             return true;
         }
 
-        if ('no' === $value) {
+        if ($value === 'no') {
             return false;
         }
 
@@ -134,15 +136,15 @@ class ConfigurationResolver
             static function (string $rawPath) use ($cwd, $filesystem): string {
                 $path = trim($rawPath);
 
-                if ('' === $path) {
+                if ($path === '') {
                     throw new InvalidConfigurationException("Invalid path: \"{$rawPath}\".");
                 }
 
                 $absolutePath = $filesystem->isAbsolutePath($path)
                     ? $path
-                    : $cwd.DIRECTORY_SEPARATOR.$path;
+                    : $cwd . DIRECTORY_SEPARATOR . $path;
 
-                if (!file_exists($absolutePath)) {
+                if (! file_exists($absolutePath)) {
                     throw new InvalidConfigurationException(sprintf('The path "%s" is not readable.', $path));
                 }
 
@@ -154,7 +156,7 @@ class ConfigurationResolver
 
     private function setOption(string $name, $value): void
     {
-        if (!\array_key_exists($name, $this->options)) {
+        if (! array_key_exists($name, $this->options)) {
             throw new InvalidConfigurationException(sprintf('Unknown option name: "%s".', $name));
         }
 
@@ -179,7 +181,7 @@ class ConfigurationResolver
             if (is_file($path)) {
                 $pathsByType['file'][] = $path;
             } else {
-                $pathsByType['dir'][] = $path.DIRECTORY_SEPARATOR;
+                $pathsByType['dir'][] = $path . DIRECTORY_SEPARATOR;
             }
         }
 

@@ -1,11 +1,11 @@
 <?php
 
-/*
+declare(strict_types=1);
+/**
  * This file is part of the PhpAccessor package.
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
 namespace PhpAccessor;
 
 use PhpAccessor\File\File;
@@ -41,7 +41,7 @@ class Runner
 
     public function generate(): void
     {
-        if (!$this->genProxy && !$this->genMeta) {
+        if (! $this->genProxy && ! $this->genMeta) {
             return;
         }
         foreach ($this->finder as $value) {
@@ -73,7 +73,7 @@ class Runner
      */
     private function generateProxy(ClassProcessor $classProcessor, array $stmts): void
     {
-        if (!$this->genProxy) {
+        if (! $this->genProxy) {
             return;
         }
 
@@ -91,7 +91,7 @@ class Runner
 
     private function generateMetadata(ClassProcessor $classProcessor): void
     {
-        if (!$this->genMeta || empty($classProcessor->getAccessorMethods())) {
+        if (! $this->genMeta || empty($classProcessor->getAccessorMethods())) {
             return;
         }
 
