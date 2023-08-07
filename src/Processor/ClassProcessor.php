@@ -75,6 +75,12 @@ class ClassProcessor extends NodeVisitorAbstract
 
     private PhpDocParser $phpDocParser;
 
+    /** @var Property[] */
+    private array $originalProperties = [];
+
+    /** @var string[] */
+    private array $originalMethods = [];
+
     public function __construct(
         private bool $genMethod,
         private NameContext $nameContext,
@@ -97,14 +103,12 @@ class ClassProcessor extends NodeVisitorAbstract
             return null;
         }
 
-        /** @var Property[] $properties */
-        $properties = $this->nodeFinder->findInstanceOf($node, Property::class);
-        if (empty($properties)) {
+        if (! $this->parsePropertiesAndMethods($node)) {
             return null;
         }
 
-        $this->generateAllMethods($node->namespacedName->toString(), $properties, $attributeProcessor);
-        $this->buildTraitAccessor($node);
+        $this->generateAllMethods($node->namespacedName->toString(), $attributeProcessor);
+        $this->buildTraitAccessor();
         if (empty($this->accessorMethods) || ! $this->genMethod) {
             return null;
         }
@@ -204,15 +208,39 @@ class ClassProcessor extends NodeVisitorAbstract
         return $resolvedName->toCodeString();
     }
 
-    /**
-     * @param Property[] $properties
-     */
+    private function parsePropertiesAndMethods(Node $node): bool
+    {
+        $this->originalProperties = $this->nodeFinder->findInstanceOf($node, Property::class);
+        /** @var ClassMethod[] $originalClassMethods */
+        $originalClassMethods = $this->nodeFinder->findInstanceOf($node, ClassMethod::class);
+        foreach ($originalClassMethods as $method) {
+            $this->originalMethods[] = $method->name->name;
+            if (empty($method->getParams()) || $method->name->name != '__construct') {
+                continue;
+            }
+
+            foreach ($method->getParams() as $param) {
+                if ($param->flags == 0) {
+                    continue;
+                }
+
+                $propertyBuilder = new \PhpParser\Builder\Property($param->var->name);
+                $propertyBuilder->setDefault($param->default);
+                $property = $propertyBuilder->getNode();
+                $property->flags = $param->flags;
+                $property->type = $param->type;
+                $this->originalProperties[] = $property;
+            }
+        }
+
+        return ! empty($this->originalProperties);
+    }
+
     private function generateAllMethods(
         string $classname,
-        array $properties,
         AttributeProcessor $attributeProcessor,
     ): void {
-        foreach ($properties as $property) {
+        foreach ($this->originalProperties as $property) {
             if ($attributeProcessor->ignoreProperty($property)) {
                 continue;
             }
@@ -227,20 +255,14 @@ class ClassProcessor extends NodeVisitorAbstract
         }
     }
 
-    private function buildTraitAccessor(Node $node): void
+    private function buildTraitAccessor(): void
     {
-        /** @var ClassMethod[] $originalClassMethods */
-        $originalClassMethods = $this->nodeFinder->findInstanceOf($node, ClassMethod::class);
-        $originalClassMethodNames = [];
-        foreach ($originalClassMethods as $originalClassMethod) {
-            $originalClassMethodNames[] = $originalClassMethod->name->toString();
-        }
-
         $this->traitAccessor = new TraitAccessor($this->classname);
         foreach ($this->accessorMethods as $accessorMethod) {
-            if (in_array($accessorMethod->getMethodName(), $originalClassMethodNames)) {
+            if (in_array($accessorMethod->getMethodName(), $this->originalMethods)) {
                 continue;
             }
+
             $this->traitAccessor->addAccessorMethod($accessorMethod);
         }
     }
