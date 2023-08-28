@@ -100,6 +100,33 @@ class Entity
 }
 ```
 
+### `#[DefaultNull]`
+
+设置后调用相应的Getter方法时，若属性未进行初始化，将返回null。
+
+示例
+```php
+<?php
+
+namespace App;
+
+use PhpAccessor\Attribute\Data;
+use PhpAccessor\Attribute\DefaultNull;
+
+#[Data]
+class Entity
+{
+    private int $id;
+
+    #[DefaultNull]
+    private string $defaultNull;
+}
+
+$entity = new Entity();
+var_dump($entity->getDefaultNull());  // output: NULL
+```
+
+
 
 
 ## 要点说明

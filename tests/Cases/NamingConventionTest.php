@@ -46,10 +46,10 @@ class NamingConventionTest extends TestCase
         $generatedFiles = GeneratorHelper::genFromClass($classname);
         $this->assertNotEmpty($generatedFiles);
         $proxyFile = $generatedFiles[1];
-        $classMethods = GeneratorHelper::getClassMethods($proxyFile);
+        $classMethods = GeneratorHelper::getMethods($proxyFile);
         $this->assertCount(count($methods), $classMethods);
         foreach ($methods as $method) {
-            $this->assertTrue(in_array($method, $classMethods));
+            $this->assertArrayHasKey($method, $classMethods);
         }
     }
 }

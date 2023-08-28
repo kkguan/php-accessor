@@ -21,8 +21,6 @@ class FieldMetadata
 
     private ?PhpDocNode $comment;
 
-    private string $methodSuffix;
-
     public function getClassname(): string
     {
         return $this->classname;
@@ -70,17 +68,6 @@ class FieldMetadata
     public function setComment(?PhpDocNode $comment): FieldMetadata
     {
         $this->comment = $comment;
-        return $this;
-    }
-
-    public function getMethodSuffix(): string
-    {
-        return $this->methodSuffix;
-    }
-
-    public function setMethodSuffix(string $methodSuffix): FieldMetadata
-    {
-        $this->methodSuffix = $methodSuffix;
         return $this;
     }
 }

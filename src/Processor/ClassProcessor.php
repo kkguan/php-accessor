@@ -10,7 +10,7 @@ namespace PhpAccessor\Processor;
 
 use PhpAccessor\Attribute\Data;
 use PhpAccessor\File\File;
-use PhpAccessor\Processor\Method\AccessorMethod;
+use PhpAccessor\Processor\Method\AccessorMethodInterface;
 use PhpParser\BuilderFactory;
 use PhpParser\Comment\Doc;
 use PhpParser\NameContext;
@@ -60,7 +60,7 @@ class ClassProcessor extends NodeVisitorAbstract
         'iterable' => 'iterable',
     ];
 
-    /** @var AccessorMethod[] */
+    /** @var AccessorMethodInterface[] */
     private array $accessorMethods = [];
 
     private string $classname = '';

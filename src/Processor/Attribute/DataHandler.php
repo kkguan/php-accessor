@@ -8,7 +8,7 @@ declare(strict_types=1);
  */
 namespace PhpAccessor\Processor\Attribute;
 
-class Data
+class DataHandler implements AttributeHandlerInterface
 {
     private NamingConvention $namingConvention;
 
@@ -46,7 +46,7 @@ class Data
         return $this->accessorType;
     }
 
-    public function setAccessorType(AccessorType $accessorType): Data
+    public function setAccessorType(AccessorType $accessorType): DataHandler
     {
         $this->accessorType = $accessorType;
         return $this;

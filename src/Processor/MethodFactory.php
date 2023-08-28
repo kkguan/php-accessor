@@ -8,10 +8,16 @@ declare(strict_types=1);
  */
 namespace PhpAccessor\Processor;
 
-use PhpAccessor\Attribute\Map\AccessorType;
-use PhpAccessor\Processor\Method\AbstractMethod;
-use PhpAccessor\Processor\Method\AccessorMethod;
+use PhpAccessor\Processor\Method\AccessorMethodInterface;
 use PhpAccessor\Processor\Method\FieldMetadataBuilder;
+use PhpAccessor\Processor\Method\Generator\Getter\GetterBodyGenerator;
+use PhpAccessor\Processor\Method\Generator\Getter\GetterMethodNameGenerator;
+use PhpAccessor\Processor\Method\Generator\Getter\MethodCommentGenerator;
+use PhpAccessor\Processor\Method\Generator\Getter\ReturnTypeGenerator;
+use PhpAccessor\Processor\Method\Generator\Setter\ParameterTypeGenerator;
+use PhpAccessor\Processor\Method\Generator\Setter\SetterBodyGenerator;
+use PhpAccessor\Processor\Method\Generator\Setter\SetterMethodNameGenerator;
+use PhpAccessor\Processor\Method\Generator\Setter\SetterReturnTypeGenerator;
 use PhpAccessor\Processor\Method\GetterMethod;
 use PhpAccessor\Processor\Method\SetterMethod;
 use PhpParser\Node\ComplexType;
@@ -22,14 +28,8 @@ use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 
 class MethodFactory
 {
-    /** @var AbstractMethod[] */
-    private static array $methodHandlers = [
-        AccessorType::GETTER => GetterMethod::class,
-        AccessorType::SETTER => SetterMethod::class,
-    ];
-
     /**
-     * @return AccessorMethod[]
+     * @return AccessorMethodInterface[]
      */
     public static function createFromField(
         string $classname,
@@ -39,15 +39,29 @@ class MethodFactory
         AttributeProcessor $attributeProcessor
     ): array {
         $accessorMethods = [];
-        $builder = new FieldMetadataBuilder($classname, $property, $propertyType, $propertyDocComment, $attributeProcessor);
+        $builder = new FieldMetadataBuilder($classname, $property, $propertyType, $propertyDocComment);
         $fieldMetadata = $builder->build();
 
         if ($attributeProcessor->shouldGenerateGetter()) {
-            $accessorMethods[] = static::$methodHandlers[AccessorType::GETTER]::createFromFieldMetadata($fieldMetadata);
+            $getter = new GetterMethod();
+            $getter->setFieldMetadata($fieldMetadata);
+            $getter->addGenerator(new GetterMethodNameGenerator($attributeProcessor));
+            $getter->addGenerator(new MethodCommentGenerator());
+            $getter->addGenerator(new ReturnTypeGenerator($attributeProcessor));
+            $getter->addGenerator(new GetterBodyGenerator($attributeProcessor));
+            $getter->generate();
+            $accessorMethods[] = $getter;
         }
 
         if ($attributeProcessor->shouldGenerateSetter()) {
-            $accessorMethods[] = static::$methodHandlers[AccessorType::SETTER]::createFromFieldMetadata($fieldMetadata);
+            $setter = new SetterMethod();
+            $setter->setFieldMetadata($fieldMetadata);
+            $setter->addGenerator(new SetterMethodNameGenerator($attributeProcessor));
+            $setter->addGenerator(new ParameterTypeGenerator());
+            $setter->addGenerator(new SetterReturnTypeGenerator());
+            $setter->addGenerator(new SetterBodyGenerator());
+            $setter->generate();
+            $accessorMethods[] = $setter;
         }
 
         return $accessorMethods;

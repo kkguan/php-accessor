@@ -43,8 +43,8 @@ class AccessorTypeTest extends TestCase
         $generatedFiles = GeneratorHelper::genFromClass($classname);
         $this->assertNotEmpty($generatedFiles);
         $proxyFile = $generatedFiles[1];
-        $classMethods = GeneratorHelper::getClassMethods($proxyFile);
+        $classMethods = GeneratorHelper::getMethods($proxyFile);
         $this->assertCount(1, $classMethods);
-        $this->assertSame($method, $classMethods[0]);
+        $this->assertSame($method, $classMethods[$method]['name']);
     }
 }

@@ -15,6 +15,7 @@ use PhpParser\Node;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitorAbstract;
 use PhpParser\ParserFactory;
+use PhpParser\PrettyPrinter\Standard;
 use ReflectionClass;
 
 class GeneratorHelper
@@ -46,26 +47,41 @@ class GeneratorHelper
         return $runner->getGeneratedFiles();
     }
 
-    public static function getClassMethods($classPath): array
+    /**
+     * @return array<array{name:string,body:string,comment:string}>
+     */
+    public static function getMethods(string $classPath): array
     {
         $source = file_get_contents($classPath);
         $parser = (new ParserFactory())->create(ParserFactory::PREFER_PHP7);
         $stmts = $parser->parse($source);
         $traverser = new NodeTraverser();
         $visitor = new class() extends NodeVisitorAbstract {
-            public array $classMethods = [];
+            public array $methods = [];
 
-            public function enterNode(Node $node)
+            private Standard $standard;
+
+            public function __construct()
+            {
+                $this->standard = new Standard();
+            }
+
+            public function enterNode(Node $node): void
             {
                 if (! $node instanceof Node\Stmt\ClassMethod) {
                     return;
                 }
-                $this->classMethods[] = $node->name->name;
+
+                $this->methods[$node->name->name] = [
+                    'name' => $node->name->name,
+                    'body' => $this->standard->prettyPrint($node->getStmts()),
+                    'comment' => $node->getDocComment()?->getText(),
+                ];
             }
         };
         $traverser->addVisitor($visitor);
         $traverser->traverse($stmts);
 
-        return $visitor->classMethods;
+        return $visitor->methods;
     }
 }

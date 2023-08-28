@@ -9,15 +9,24 @@ declare(strict_types=1);
 namespace PhpAccessor\Processor\Attribute\Builder;
 
 use PhpAccessor\Attribute\Overlook as OverlookAttribute;
-use PhpAccessor\Processor\Attribute\Overlook;
+use PhpAccessor\Processor\Attribute\OverlookHandler;
 use PhpParser\Node\Attribute;
 
-class OverlookBuilder
+class OverlookBuilder implements AttributeBuilderInterface
 {
     /**
      * @var Attribute[]
      */
     private array $attributes;
+
+    private Attribute $attribute;
+
+    public function setAttribute(Attribute $attribute): static
+    {
+        $this->attribute = $attribute;
+
+        return $this;
+    }
 
     public function setAttributes(array $attributes): self
     {
@@ -26,14 +35,12 @@ class OverlookBuilder
         return $this;
     }
 
-    public function build(): ?Overlook
+    public function build(): ?OverlookHandler
     {
-        foreach ($this->attributes as $attribute) {
-            if ($attribute->name->toString() == OverlookAttribute::class) {
-                return new Overlook();
-            }
+        if ($this->attribute->name->toString() != OverlookAttribute::class) {
+            return null;
         }
 
-        return null;
+        return new OverlookHandler();
     }
 }

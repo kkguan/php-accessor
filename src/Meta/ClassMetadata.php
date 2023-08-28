@@ -1,16 +1,16 @@
 <?php
 
-/*
+declare(strict_types=1);
+/**
  * This file is part of the PhpAccessor package.
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
 namespace PhpAccessor\Meta;
 
 use DateTime;
 use JsonSerializable;
-use PhpAccessor\Processor\Method\AccessorMethod;
+use PhpAccessor\Processor\Method\AccessorMethodInterface;
 
 class ClassMetadata implements JsonSerializable
 {
@@ -20,7 +20,7 @@ class ClassMetadata implements JsonSerializable
 
     protected string $accessorClassname;
 
-    /** @var AccessorMethod[] */
+    /** @var AccessorMethodInterface[] */
     protected array $methods = [];
 
     protected DateTime $updateTime;
@@ -33,7 +33,7 @@ class ClassMetadata implements JsonSerializable
         $this->updateTime = new DateTime();
     }
 
-    public function addMethod(AccessorMethod $method): static
+    public function addMethod(AccessorMethodInterface $method): static
     {
         $this->methods[] = $method;
 

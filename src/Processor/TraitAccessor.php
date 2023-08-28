@@ -1,14 +1,14 @@
 <?php
 
-/*
+declare(strict_types=1);
+/**
  * This file is part of the PhpAccessor package.
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
 namespace PhpAccessor\Processor;
 
-use PhpAccessor\Processor\Method\AccessorMethod;
+use PhpAccessor\Processor\Method\AccessorMethodInterface;
 use PhpParser\BuilderFactory;
 use PhpParser\Node\Stmt\Trait_;
 
@@ -16,7 +16,7 @@ class TraitAccessor
 {
     protected string $className;
 
-    /** @var AccessorMethod[] */
+    /** @var AccessorMethodInterface[] */
     private array $accessorMethods = [];
 
     public function __construct(string $classShortName)
@@ -24,7 +24,7 @@ class TraitAccessor
         $this->className = '_Proxy' . str_replace('\\', '_', $classShortName) . 'Accessor';
     }
 
-    public function addAccessorMethod(AccessorMethod $abstractMethod): static
+    public function addAccessorMethod(AccessorMethodInterface $abstractMethod): static
     {
         $this->accessorMethods[] = $abstractMethod;
 

@@ -9,10 +9,10 @@ declare(strict_types=1);
 namespace PhpAccessor\Processor\Attribute\Builder;
 
 use PhpAccessor\Attribute\Data as AttributeData;
-use PhpAccessor\Processor\Attribute\Data;
+use PhpAccessor\Processor\Attribute\DataHandler;
 use PhpParser\Node\Attribute;
 
-class DataBuilder
+class DataBuilder implements AttributeBuilderInterface
 {
     private Attribute $attribute;
 
@@ -32,13 +32,13 @@ class DataBuilder
         return $this;
     }
 
-    public function build(): ?Data
+    public function build(): ?DataHandler
     {
         if ($this->attribute->name->toString() != AttributeData::class) {
             return null;
         }
 
-        $data = new Data();
+        $data = new DataHandler();
         foreach ($this->attribute->args as $arg) {
             foreach ($this->attributeParameterBuilders as $attributeParameterBuilder) {
                 if ($arg->name->name != $attributeParameterBuilder->getName()) {

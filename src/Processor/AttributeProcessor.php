@@ -8,9 +8,14 @@ declare(strict_types=1);
  */
 namespace PhpAccessor\Processor;
 
+use PhpAccessor\Processor\Attribute\AttributeHandlerInterface;
+use PhpAccessor\Processor\Attribute\Builder\AttributeBuilderInterface;
 use PhpAccessor\Processor\Attribute\Builder\DataBuilder;
+use PhpAccessor\Processor\Attribute\Builder\DefaultNullBuilder;
 use PhpAccessor\Processor\Attribute\Builder\OverlookBuilder;
-use PhpAccessor\Processor\Attribute\Data;
+use PhpAccessor\Processor\Attribute\DataHandler;
+use PhpAccessor\Processor\Attribute\DefaultNullHandler;
+use PhpAccessor\Processor\Attribute\OverlookHandler;
 use PhpParser\Node;
 use PhpParser\Node\Attribute;
 use PhpParser\Node\Stmt\Property;
@@ -18,38 +23,58 @@ use PhpParser\NodeFinder;
 
 class AttributeProcessor
 {
-    private Data $data;
+    /**
+     * @var AttributeBuilderInterface[]
+     */
+    private array $classAttributeBuilders = [
+        DataHandler::class => DataBuilder::class,
+        DefaultNullHandler::class => DefaultNullBuilder::class,
+    ];
 
-    private bool $isPending = false;
+    /**
+     * @var AttributeBuilderInterface[]
+     */
+    private array $propertyAttributeBuilders = [
+        OverlookHandler::class => OverlookBuilder::class,
+        DefaultNullHandler::class => DefaultNullBuilder::class,
+    ];
 
-    private array $ignoreProperties = [];
+    /**
+     * @var AttributeHandlerInterface[]
+     */
+    private array $classAttributeHandlers = [];
+
+    /**
+     * @var AttributeHandlerInterface[][]
+     */
+    private array $propertyAttributeHandlers = [];
 
     private NodeFinder $nodeFinder;
 
     public function __construct(Node $node)
     {
         $this->nodeFinder = new NodeFinder();
+
         $this->parseClassAttribute($node);
         $this->parsePropertyAttribute($node);
     }
 
     public function isPending(): bool
     {
-        return $this->isPending;
+        return $this->getClassAttributeHandler(DataHandler::class) != null;
     }
 
     public function buildMethodSuffixFromField(string $fieldName): string
     {
-        $namingConvention = $this->data->getNamingConvention();
-
-        return $namingConvention->buildName($fieldName);
+        $handler = $this->getClassAttributeHandler(DataHandler::class);
+        return $handler->getNamingConvention()->buildName($fieldName);
     }
 
     public function ignoreProperty(Property $property): bool
     {
         $ignore = true;
         foreach ($property->props as $prop) {
-            if (! isset($this->ignoreProperties[$prop->name->name])) {
+            if (! $this->getPropertyAttributeHandler($prop->name->name, OverlookHandler::class)?->isOverlook()) {
                 $ignore = false;
                 break;
             }
@@ -58,30 +83,54 @@ class AttributeProcessor
         return $ignore;
     }
 
+    public function isDefaultNull(string $fieldName): bool
+    {
+        if ($this->getClassAttributeHandler(DefaultNullHandler::class)) {
+            return true;
+        }
+
+        if ($this->getPropertyAttributeHandler($fieldName, DefaultNullHandler::class)) {
+            return true;
+        }
+
+        return false;
+    }
+
     public function shouldGenerateGetter(): bool
     {
-        return $this->data->getAccessorType()->shouldGenerateGetter();
+        return $this->getClassAttributeHandler(DataHandler::class)->getAccessorType()->shouldGenerateGetter();
     }
 
     public function shouldGenerateSetter(): bool
     {
-        return $this->data->getAccessorType()->shouldGenerateSetter();
+        return $this->getClassAttributeHandler(DataHandler::class)->getAccessorType()->shouldGenerateSetter();
+    }
+
+    private function getClassAttributeHandler(string $handlerClassname): ?AttributeHandlerInterface
+    {
+        return $this->classAttributeHandlers[$handlerClassname] ?? null;
+    }
+
+    private function getPropertyAttributeHandler(string $propertyName, string $handlerClassname): ?AttributeHandlerInterface
+    {
+        return $this->propertyAttributeHandlers[$propertyName][$handlerClassname] ?? null;
     }
 
     private function parseClassAttribute(Node $node): void
     {
         /** @var Attribute[] $attributes */
         $attributes = $this->nodeFinder->findInstanceOf($node->attrGroups, Attribute::class);
-        foreach ($attributes as $attribute) {
-            $dataBuilder = new DataBuilder();
-            $data = $dataBuilder->setAttribute($attribute)->build();
-            if (empty($data)) {
-                continue;
-            }
+        foreach ($this->classAttributeBuilders as $handlerClassname => $attributeClassBuilder) {
+            $builder = new $attributeClassBuilder();
+            foreach ($attributes as $attribute) {
+                $handler = $builder->setAttribute($attribute)->build();
+                if ($handler == null) {
+                    continue;
+                }
 
-            $this->data = $data;
-            $this->isPending = true;
-            break;
+                $this->classAttributeHandlers[$handlerClassname] = $handler;
+                break;
+            }
         }
     }
 
@@ -93,15 +142,20 @@ class AttributeProcessor
             return;
         }
 
-        $overlookBuilder = new OverlookBuilder();
-        foreach ($properties as $property) {
-            /** @var Attribute[] $attributes */
-            $attributes = $this->nodeFinder->findInstanceOf($property->attrGroups, Attribute::class);
-            $overlookBuilder->setAttributes($attributes);
-            $overlook = $overlookBuilder->build();
-            if ($overlook && $overlook->isOverlook()) {
-                foreach ($property->props as $prop) {
-                    $this->ignoreProperties[$prop->name->name] = 1;
+        foreach ($this->propertyAttributeBuilders as $handlerClassname => $attributeClassBuilder) {
+            $builder = new $attributeClassBuilder();
+            foreach ($properties as $property) {
+                /** @var Attribute[] $attributes */
+                $attributes = $this->nodeFinder->findInstanceOf($property->attrGroups, Attribute::class);
+                foreach ($attributes as $attribute) {
+                    $handler = $builder->setAttribute($attribute)->build();
+                    if ($handler == null) {
+                        continue;
+                    }
+
+                    foreach ($property->props as $prop) {
+                        $this->propertyAttributeHandlers[$prop->name->name][$handlerClassname] = $handler;
+                    }
                 }
             }
         }

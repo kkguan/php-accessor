@@ -8,7 +8,6 @@ declare(strict_types=1);
  */
 namespace PhpAccessor\Processor\Method;
 
-use PhpAccessor\Processor\AttributeProcessor;
 use PhpParser\Node\ComplexType;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\IntersectionType;
@@ -27,7 +26,6 @@ class FieldMetadataBuilder
         private PropertyProperty $property,
         private null|Identifier|Name|ComplexType $propertyType,
         private null|PhpDocNode $propertyDocComment,
-        private AttributeProcessor $attributeProcessor
     ) {
         $this->fieldMetadata = new FieldMetadata();
     }
@@ -37,7 +35,6 @@ class FieldMetadataBuilder
         $this->fieldMetadata->setClassname($this->classname);
         $this->fieldMetadata->setFieldName($this->property->name->toString());
         $this->fieldMetadata->setComment($this->propertyDocComment);
-        $this->fieldMetadata->setMethodSuffix($this->attributeProcessor->buildMethodSuffixFromField($this->fieldMetadata->getFieldName()));
         $this->buildFieldTypes($this->propertyType);
 
         return $this->fieldMetadata;
@@ -63,7 +60,7 @@ class FieldMetadataBuilder
         }
 
         if ($propertyType instanceof Name) {
-            $this->fieldMetadata->addFieldType('\\' . implode('\\', $propertyType->parts));
+            $this->fieldMetadata->addFieldType('\\' . implode('\\', $propertyType->getParts()));
 
             return;
         }
