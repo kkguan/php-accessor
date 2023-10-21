@@ -9,9 +9,7 @@ declare(strict_types=1);
 namespace PhpAccessor\Test\Cases;
 
 use PhpAccessor\Console\Application;
-use PhpAccessor\Test\Mock\Foo;
 use PHPUnit\Framework\TestCase;
-use ReflectionClass;
 use Symfony\Component\Console\Input\ArrayInput;
 
 /**
@@ -22,11 +20,10 @@ class ApplicationTest extends TestCase
 {
     public function testRun()
     {
-        $ref = new ReflectionClass(Foo::class);
         $input = new ArrayInput([
             'command' => 'generate',
             'path' => [
-                $ref->getFileName(),
+                __ROOT__ . '/tests/Mock/Foo.php',
             ],
             '--gen-meta' => 'yes',
             '--dir' => __ROOT__ . DIRECTORY_SEPARATOR . '.php-accessor',

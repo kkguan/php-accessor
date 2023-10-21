@@ -31,7 +31,7 @@ class MethodFactory
     /**
      * @return AccessorMethodInterface[]
      */
-    public static function createFromField(
+    public static function createFromProperty(
         string $classname,
         PropertyProperty $property,
         null|Identifier|Name|ComplexType $propertyType,

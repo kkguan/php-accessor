@@ -18,13 +18,6 @@ class Foo extends SuperFoo implements FooInterface1, FooInterface2
 {
     public const AAAA = 1;
 
-    //    private int $id1;
-    // //    private int $id3,$id4;
-    //
-    //    private ?string $string;
-    //
-    //    private $mixd;
-
     /**
      * @var FooSub[]
      */
@@ -48,6 +41,4 @@ class Foo extends SuperFoo implements FooInterface1, FooInterface2
         $this->setName([]);
         $this->setTestId2(213123);
     }
-
-    //    private FooSub $fooSub;
 }

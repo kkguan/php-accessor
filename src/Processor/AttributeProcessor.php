@@ -54,11 +54,12 @@ class AttributeProcessor
     public function __construct(Node $node)
     {
         $this->nodeFinder = new NodeFinder();
-
-        $this->parseClassAttribute($node);
-        $this->parsePropertyAttribute($node);
+        $this->parse($node);
     }
 
+    /**
+     * check if the class is pending to generate accessor methods.
+     */
     public function isPending(): bool
     {
         return $this->getClassAttributeHandler(DataHandler::class) != null;
@@ -70,7 +71,10 @@ class AttributeProcessor
         return $handler->getNamingConvention()->buildName($fieldName);
     }
 
-    public function ignoreProperty(Property $property): bool
+    /**
+     * Whether to generate accessor methods for the property.
+     */
+    public function isIgnored(Property $property): bool
     {
         $ignore = true;
         foreach ($property->props as $prop) {
@@ -116,15 +120,15 @@ class AttributeProcessor
         return $this->propertyAttributeHandlers[$propertyName][$handlerClassname] ?? null;
     }
 
-    private function parseClassAttribute(Node $node): void
+    private function parse(Node $node): void
     {
+        // Parse class attributes
         /** @var Attribute[] $attributes */
         $attributes = $this->nodeFinder->findInstanceOf($node->attrGroups, Attribute::class);
         foreach ($this->classAttributeBuilders as $handlerClassname => $attributeClassBuilder) {
             $builder = new $attributeClassBuilder();
             foreach ($attributes as $attribute) {
-                $handler = $builder->setAttribute($attribute)->build();
-                if ($handler == null) {
+                if (($handler = $builder->setAttribute($attribute)->build()) == null) {
                     continue;
                 }
 
@@ -132,24 +136,17 @@ class AttributeProcessor
                 break;
             }
         }
-    }
 
-    private function parsePropertyAttribute(Node $node): void
-    {
+        // Parse property attributes
         /** @var Property[] $properties */
         $properties = $this->nodeFinder->findInstanceOf($node, Property::class);
-        if (empty($properties)) {
-            return;
-        }
-
         foreach ($this->propertyAttributeBuilders as $handlerClassname => $attributeClassBuilder) {
             $builder = new $attributeClassBuilder();
             foreach ($properties as $property) {
                 /** @var Attribute[] $attributes */
                 $attributes = $this->nodeFinder->findInstanceOf($property->attrGroups, Attribute::class);
                 foreach ($attributes as $attribute) {
-                    $handler = $builder->setAttribute($attribute)->build();
-                    if ($handler == null) {
+                    if (($handler = $builder->setAttribute($attribute)->build()) == null) {
                         continue;
                     }
 

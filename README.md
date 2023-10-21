@@ -204,7 +204,10 @@ var_dump($entity);
 
 ## 相关资源
 
-#### <a href="https://github.com/kkguan/hyperf-php-accessor">Hyperf PHP Accessor</a>: 服务启动时将自动生成访问器代理类,同时对原始类进行替换.
+#### <a href="https://github.com/kkguan/php-accessor">PHP Accessor</a>: 访问器生成器
 
-#### <a href="https://github.com/kkguan/php-accessor-idea-plugin">PHP Accessor IDEA Plugin</a>: Phpstorm辅助插件,文件保存时自动生成访问器.支持访问器的跳转,代码提示,查找及类字段重构等.
+#### <a href="https://github.com/kkguan/php-accessor-idea-plugin">PHP Accessor IDEA Plugin</a>: Phpstorm插件,文件保存时自动生成访问器.支持访问器的跳转,代码提示,查找及类字段重构等.
 
+#### <a href="https://github.com/kkguan/hyperf-php-accessor">Hyperf PHP Accessor</a>: Hyperf框架SDK
+
+#### <a href="https://github.com/kkguan/laravel-php-accessor">Laravel PHP Accessor</a>: Laravel框架SDK
