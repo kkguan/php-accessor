@@ -9,51 +9,40 @@ declare(strict_types=1);
 namespace PhpAccessor\Processor;
 
 use PhpAccessor\Processor\Attribute\AttributeHandlerInterface;
-use PhpAccessor\Processor\Attribute\Builder\AttributeBuilderInterface;
-use PhpAccessor\Processor\Attribute\Builder\DataBuilder;
-use PhpAccessor\Processor\Attribute\Builder\DefaultNullBuilder;
-use PhpAccessor\Processor\Attribute\Builder\OverlookBuilder;
 use PhpAccessor\Processor\Attribute\DataHandler;
 use PhpAccessor\Processor\Attribute\DefaultNullHandler;
 use PhpAccessor\Processor\Attribute\OverlookHandler;
+use PhpAccessor\Processor\Attribute\Parameter\AccessorTypeHandler;
+use PhpAccessor\Processor\Attribute\Parameter\NamingConventionHandler;
+use PhpAccessor\Processor\Attribute\Parameter\PrefixConventionHandler;
+use PhpAccessor\Processor\Method\AccessorMethodType;
 use PhpParser\Node;
 use PhpParser\Node\Attribute;
 use PhpParser\Node\Stmt\Property;
 use PhpParser\NodeFinder;
 
+/**
+ * @internal
+ */
 class AttributeProcessor
 {
-    /**
-     * @var AttributeBuilderInterface[]
-     */
-    private array $classAttributeBuilders = [
-        DataHandler::class => DataBuilder::class,
-        DefaultNullHandler::class => DefaultNullBuilder::class,
-    ];
-
-    /**
-     * @var AttributeBuilderInterface[]
-     */
-    private array $propertyAttributeBuilders = [
-        OverlookHandler::class => OverlookBuilder::class,
-        DefaultNullHandler::class => DefaultNullBuilder::class,
+    private static array $registeredHandlers = [
+        DataHandler::class,
+        DefaultNullHandler::class,
+        OverlookHandler::class,
     ];
 
     /**
      * @var AttributeHandlerInterface[]
      */
-    private array $classAttributeHandlers = [];
-
-    /**
-     * @var AttributeHandlerInterface[][]
-     */
-    private array $propertyAttributeHandlers = [];
+    private array $attributeHandlers = [];
 
     private NodeFinder $nodeFinder;
 
     public function __construct(Node $node)
     {
         $this->nodeFinder = new NodeFinder();
+        $this->initHandlers();
         $this->parse($node);
     }
 
@@ -62,13 +51,14 @@ class AttributeProcessor
      */
     public function isPending(): bool
     {
-        return $this->getClassAttributeHandler(DataHandler::class) != null;
+        return $this->getAttributeHandler(DataHandler::class)->isPending();
     }
 
-    public function buildMethodSuffixFromField(string $fieldName): string
+    public function buildMethodNameFromField(string $fieldName, array $fieldType, string $accessorMethodType): string
     {
-        $handler = $this->getClassAttributeHandler(DataHandler::class);
-        return $handler->getNamingConvention()->buildName($fieldName);
+        $handler = $this->getAttributeHandler(DataHandler::class);
+        return $handler->getParameterHandler(PrefixConventionHandler::class)->buildPrefix($fieldType, $accessorMethodType) .
+            $handler->getParameterHandler(NamingConventionHandler::class)->buildName($fieldName);
     }
 
     /**
@@ -76,85 +66,72 @@ class AttributeProcessor
      */
     public function isIgnored(Property $property): bool
     {
-        $ignore = true;
-        foreach ($property->props as $prop) {
-            if (! $this->getPropertyAttributeHandler($prop->name->name, OverlookHandler::class)?->isOverlook()) {
-                $ignore = false;
-                break;
-            }
-        }
-
-        return $ignore;
+        return $this->getAttributeHandler(OverlookHandler::class)->isOverlook($property);
     }
 
     public function isDefaultNull(string $fieldName): bool
     {
-        if ($this->getClassAttributeHandler(DefaultNullHandler::class)) {
-            return true;
+        return $this->getAttributeHandler(DefaultNullHandler::class)->isDefaultNull($fieldName);
+    }
+
+    public function shouldGenMethod(string $accessorMethodType): bool
+    {
+        return match ($accessorMethodType) {
+            AccessorMethodType::GETTER => $this->getAttributeHandler(DataHandler::class)->getParameterHandler(AccessorTypeHandler::class)->shouldGenerateGetter(),
+            AccessorMethodType::SETTER => $this->getAttributeHandler(DataHandler::class)->getParameterHandler(AccessorTypeHandler::class)->shouldGenerateSetter(),
+            default => false,
+        };
+    }
+
+    private function initHandlers(): void
+    {
+        foreach (self::$registeredHandlers as $handlerClassname) {
+            $this->attributeHandlers[$handlerClassname] = new $handlerClassname();
         }
-
-        if ($this->getPropertyAttributeHandler($fieldName, DefaultNullHandler::class)) {
-            return true;
-        }
-
-        return false;
-    }
-
-    public function shouldGenerateGetter(): bool
-    {
-        return $this->getClassAttributeHandler(DataHandler::class)->getAccessorType()->shouldGenerateGetter();
-    }
-
-    public function shouldGenerateSetter(): bool
-    {
-        return $this->getClassAttributeHandler(DataHandler::class)->getAccessorType()->shouldGenerateSetter();
-    }
-
-    private function getClassAttributeHandler(string $handlerClassname): ?AttributeHandlerInterface
-    {
-        return $this->classAttributeHandlers[$handlerClassname] ?? null;
-    }
-
-    private function getPropertyAttributeHandler(string $propertyName, string $handlerClassname): ?AttributeHandlerInterface
-    {
-        return $this->propertyAttributeHandlers[$propertyName][$handlerClassname] ?? null;
     }
 
     private function parse(Node $node): void
     {
         // Parse class attributes
+        $this->parseClassAttributes($node);
+        // Parse property attributes
+        $this->parsePropertyAttributes($node);
+    }
+
+    private function parseClassAttributes(Node $node): void
+    {
         /** @var Attribute[] $attributes */
         $attributes = $this->nodeFinder->findInstanceOf($node->attrGroups, Attribute::class);
-        foreach ($this->classAttributeBuilders as $handlerClassname => $attributeClassBuilder) {
-            $builder = new $attributeClassBuilder();
-            foreach ($attributes as $attribute) {
-                if (($handler = $builder->setAttribute($attribute)->build()) == null) {
-                    continue;
-                }
-
-                $this->classAttributeHandlers[$handlerClassname] = $handler;
-                break;
-            }
+        foreach ($this->attributeHandlers as $attributeHandler) {
+            $this->processAttributesByHandler($attributeHandler, $attributes);
         }
+    }
 
-        // Parse property attributes
+    private function parsePropertyAttributes(Node $node): void
+    {
         /** @var Property[] $properties */
         $properties = $this->nodeFinder->findInstanceOf($node, Property::class);
-        foreach ($this->propertyAttributeBuilders as $handlerClassname => $attributeClassBuilder) {
-            $builder = new $attributeClassBuilder();
+        foreach ($this->attributeHandlers as $attributeHandler) {
             foreach ($properties as $property) {
                 /** @var Attribute[] $attributes */
                 $attributes = $this->nodeFinder->findInstanceOf($property->attrGroups, Attribute::class);
-                foreach ($attributes as $attribute) {
-                    if (($handler = $builder->setAttribute($attribute)->build()) == null) {
-                        continue;
-                    }
-
-                    foreach ($property->props as $prop) {
-                        $this->propertyAttributeHandlers[$prop->name->name][$handlerClassname] = $handler;
-                    }
-                }
+                $this->processAttributesByHandler($attributeHandler, $attributes, $property);
             }
         }
+    }
+
+    /**
+     * @param Attribute[] $attributes
+     */
+    private function processAttributesByHandler(AttributeHandlerInterface $attributeHandler, array $attributes, ?Property $property = null): void
+    {
+        foreach ($attributes as $attribute) {
+            $attributeHandler->processAttribute($attribute, $property);
+        }
+    }
+
+    private function getAttributeHandler(string $handlerClassname): ?AttributeHandlerInterface
+    {
+        return $this->attributeHandlers[$handlerClassname] ?? null;
     }
 }

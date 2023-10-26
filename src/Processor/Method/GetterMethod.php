@@ -13,7 +13,7 @@ use PhpParser\Node\Stmt\ClassMethod;
 
 class GetterMethod extends AbstractAccessorMethod
 {
-    protected string $name = 'getter';
+    protected string $name = AccessorMethodType::GETTER;
 
     public function buildMethod(): ClassMethod
     {

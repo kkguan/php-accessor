@@ -8,8 +8,8 @@ declare(strict_types=1);
  */
 namespace PhpAccessor\Test\Cases;
 
-use PhpAccessor\Test\Mock\DefaultNullAll;
-use PhpAccessor\Test\Mock\DefaultNullPartial;
+use PhpAccessor\Test\Mock\PrefixConventionBooleanIs;
+use PhpAccessor\Test\Mock\PrefixConventionGetSet;
 use PhpAccessor\Test\Tools\GeneratorHelper;
 use PHPUnit\Framework\TestCase;
 
@@ -17,18 +17,18 @@ use PHPUnit\Framework\TestCase;
  * @internal
  * @coversNothing
  */
-class DefaultNullTest extends TestCase
+class PrefixConventionTest extends TestCase
 {
     public function genProvider(): array
     {
         return [
             [
-                DefaultNullPartial::class,
-                ['getId' => 'return $this->id;', 'getSex' => 'return $this->sex ?? null;'],
+                PrefixConventionBooleanIs::class,
+                ['isFoo', 'setFoo'],
             ],
             [
-                DefaultNullAll::class,
-                ['getId' => 'return $this->id ?? null;', 'getSex' => 'return $this->sex ?? null;'],
+                PrefixConventionGetSet::class,
+                ['getFoo', 'setFoo'],
             ],
         ];
     }
@@ -41,10 +41,10 @@ class DefaultNullTest extends TestCase
         $generatedFiles = GeneratorHelper::genFromClass($classname);
         $this->assertNotEmpty($generatedFiles);
         $proxyFile = $generatedFiles[1];
-        $methodInfo = GeneratorHelper::getMethods($proxyFile);
-        foreach ($methods as $method => $body) {
-            $this->assertArrayHasKey($method, $methodInfo);
-            $this->assertSame($body, $methodInfo[$method]['body']);
+        $classMethods = GeneratorHelper::getMethods($proxyFile);
+        $this->assertCount(count($methods), $classMethods);
+        foreach ($methods as $method) {
+            $this->assertArrayHasKey($method, $classMethods);
         }
     }
 }

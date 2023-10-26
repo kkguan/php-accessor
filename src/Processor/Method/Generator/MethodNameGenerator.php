@@ -6,14 +6,13 @@ declare(strict_types=1);
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-namespace PhpAccessor\Processor\Method\Generator\Getter;
+namespace PhpAccessor\Processor\Method\Generator;
 
 use PhpAccessor\Processor\AttributeProcessor;
 use PhpAccessor\Processor\Method\AccessorMethodInterface;
 use PhpAccessor\Processor\Method\FieldMetadata;
-use PhpAccessor\Processor\Method\Generator\GeneratorInterface;
 
-class GetterMethodNameGenerator implements GeneratorInterface
+class MethodNameGenerator implements GeneratorInterface
 {
     public function __construct(
         protected AttributeProcessor $attributeProcessor
@@ -22,6 +21,8 @@ class GetterMethodNameGenerator implements GeneratorInterface
 
     public function generate(FieldMetadata $fieldMetadata, AccessorMethodInterface $accessorMethod): void
     {
-        $accessorMethod->setMethodName('get' . $this->attributeProcessor->buildMethodSuffixFromField($fieldMetadata->getFieldName()));
+        $accessorMethod->setMethodName(
+            $this->attributeProcessor->buildMethodNameFromField($fieldMetadata->getFieldName(), $fieldMetadata->getFieldTypes(), $accessorMethod->getName())
+        );
     }
 }

@@ -13,7 +13,7 @@ use PhpParser\Node\Stmt\ClassMethod;
 
 class SetterMethod extends AbstractAccessorMethod
 {
-    protected string $name = 'setter';
+    protected string $name = AccessorMethodType::SETTER;
 
     /** @var string[] */
     private array $parameterTypes = [];

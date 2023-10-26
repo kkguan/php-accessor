@@ -8,47 +8,60 @@ declare(strict_types=1);
  */
 namespace PhpAccessor\Processor\Attribute;
 
+use PhpAccessor\Attribute\Data as AttributeData;
+use PhpAccessor\Processor\Attribute\Parameter\AccessorTypeHandler;
+use PhpAccessor\Processor\Attribute\Parameter\NamingConventionHandler;
+use PhpAccessor\Processor\Attribute\Parameter\ParameterHandlerInterface;
+use PhpAccessor\Processor\Attribute\Parameter\PrefixConventionHandler;
+use PhpParser\Node\Attribute;
+use PhpParser\Node\Stmt\Property;
+
+/**
+ * @internal
+ */
 class DataHandler implements AttributeHandlerInterface
 {
-    private NamingConvention $namingConvention;
+    private static array $registeredHandlers = [
+        NamingConventionHandler::class,
+        AccessorTypeHandler::class,
+        PrefixConventionHandler::class,
+    ];
 
-    private AccessorType $accessorType;
+    /**
+     * @var ParameterHandlerInterface[]
+     */
+    private array $parameterHandlers = [];
+
+    private bool $isPending = false;
 
     public function __construct()
     {
-        $this->namingConvention = new NamingConvention();
-        $this->accessorType = new AccessorType();
-    }
-
-    public function setParameter(object $parameter)
-    {
-        if ($parameter instanceof NamingConvention) {
-            $this->namingConvention = $parameter;
-        } elseif ($parameter instanceof AccessorType) {
-            $this->accessorType = $parameter;
+        foreach (self::$registeredHandlers as $handler) {
+            $this->parameterHandlers[$handler] = new $handler();
         }
     }
 
-    public function setNamingConvention(NamingConvention $namingConvention): self
+    public function processAttribute(Attribute $attribute, ?Property $property = null): void
     {
-        $this->namingConvention = $namingConvention;
+        if ($attribute->name->toString() != AttributeData::class || $property != null) {
+            return;
+        }
 
-        return $this;
+        $this->isPending = true;
+        foreach ($attribute->args as $arg) {
+            foreach ($this->parameterHandlers as $parameterHandler) {
+                $parameterHandler->processParameter($arg);
+            }
+        }
     }
 
-    public function getNamingConvention(): NamingConvention
+    public function isPending(): bool
     {
-        return $this->namingConvention;
+        return $this->isPending;
     }
 
-    public function getAccessorType(): AccessorType
+    public function getParameterHandler(string $handlerClassname): ParameterHandlerInterface
     {
-        return $this->accessorType;
-    }
-
-    public function setAccessorType(AccessorType $accessorType): DataHandler
-    {
-        $this->accessorType = $accessorType;
-        return $this;
+        return $this->parameterHandlers[$handlerClassname];
     }
 }

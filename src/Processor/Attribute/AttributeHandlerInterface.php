@@ -8,6 +8,10 @@ declare(strict_types=1);
  */
 namespace PhpAccessor\Processor\Attribute;
 
+use PhpParser\Node\Attribute;
+use PhpParser\Node\Stmt\Property;
+
 interface AttributeHandlerInterface
 {
+    public function processAttribute(Attribute $attribute, ?Property $property = null): void;
 }

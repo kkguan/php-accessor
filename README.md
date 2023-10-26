@@ -46,7 +46,7 @@ class Entity
 
 配置项
 
-* `namingConvention`：访问器命名方式设置,暂支持以下类别
+* `namingConvention`：访问器命名约定,支持以下类别
   - `NamingConvention::UPPER_CAMEL_CASE`: 大驼峰
   - `NamingConvention::LOWER_CAMEL_CASE`: 小驼峰
   - `NamingConvention::NONE`: 首字母大写,系统默认配置
@@ -54,6 +54,13 @@ class Entity
   - `AccessorType::GETTER`: 仅生成getter
   - `AccessorType::SETTER`: 仅生成setter
   - `AccessorType::BOTH`: 生成getter及setter，系统默认配置
+* `prefixConvention`:访问器前缀约定，支持以下类别
+  - `PrefixConvention::GET_SET`: 系统默认配置
+    - Getter: 使用`get`
+    - Setter: 使用`set`
+  - `PrefixConvention::BOOLEAN_IS`: 
+    - Getter: 当属性为布尔类型时,使用`is`,否则使用`get`
+    - Setter: 使用`set`
 
 示例
 

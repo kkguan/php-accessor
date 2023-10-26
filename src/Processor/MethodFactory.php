@@ -8,15 +8,17 @@ declare(strict_types=1);
  */
 namespace PhpAccessor\Processor;
 
+use PhpAccessor\Processor\Method\AbstractAccessorMethod;
 use PhpAccessor\Processor\Method\AccessorMethodInterface;
+use PhpAccessor\Processor\Method\AccessorMethodType;
 use PhpAccessor\Processor\Method\FieldMetadataBuilder;
+use PhpAccessor\Processor\Method\Generator\GeneratorInterface;
 use PhpAccessor\Processor\Method\Generator\Getter\GetterBodyGenerator;
-use PhpAccessor\Processor\Method\Generator\Getter\GetterMethodNameGenerator;
 use PhpAccessor\Processor\Method\Generator\Getter\MethodCommentGenerator;
 use PhpAccessor\Processor\Method\Generator\Getter\ReturnTypeGenerator;
+use PhpAccessor\Processor\Method\Generator\MethodNameGenerator;
 use PhpAccessor\Processor\Method\Generator\Setter\ParameterTypeGenerator;
 use PhpAccessor\Processor\Method\Generator\Setter\SetterBodyGenerator;
-use PhpAccessor\Processor\Method\Generator\Setter\SetterMethodNameGenerator;
 use PhpAccessor\Processor\Method\Generator\Setter\SetterReturnTypeGenerator;
 use PhpAccessor\Processor\Method\GetterMethod;
 use PhpAccessor\Processor\Method\SetterMethod;
@@ -26,8 +28,35 @@ use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\PropertyProperty;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 
+/**
+ * @internal
+ */
 class MethodFactory
 {
+    /**
+     * @var array{string: array{processor: AbstractAccessorMethod::class, generators: GeneratorInterface[]}}
+     */
+    private static array $generatorConfig = [
+        AccessorMethodType::GETTER => [
+            'processor' => GetterMethod::class,
+            'generators' => [
+                MethodNameGenerator::class,
+                MethodCommentGenerator::class,
+                ReturnTypeGenerator::class,
+                GetterBodyGenerator::class,
+            ],
+        ],
+        AccessorMethodType::SETTER => [
+            'processor' => SetterMethod::class,
+            'generators' => [
+                MethodNameGenerator::class,
+                ParameterTypeGenerator::class,
+                SetterReturnTypeGenerator::class,
+                SetterBodyGenerator::class,
+            ],
+        ],
+    ];
+
     /**
      * @return AccessorMethodInterface[]
      */
@@ -41,27 +70,18 @@ class MethodFactory
         $accessorMethods = [];
         $builder = new FieldMetadataBuilder($classname, $property, $propertyType, $propertyDocComment);
         $fieldMetadata = $builder->build();
-
-        if ($attributeProcessor->shouldGenerateGetter()) {
-            $getter = new GetterMethod();
-            $getter->setFieldMetadata($fieldMetadata);
-            $getter->addGenerator(new GetterMethodNameGenerator($attributeProcessor));
-            $getter->addGenerator(new MethodCommentGenerator());
-            $getter->addGenerator(new ReturnTypeGenerator($attributeProcessor));
-            $getter->addGenerator(new GetterBodyGenerator($attributeProcessor));
-            $getter->generate();
-            $accessorMethods[] = $getter;
-        }
-
-        if ($attributeProcessor->shouldGenerateSetter()) {
-            $setter = new SetterMethod();
-            $setter->setFieldMetadata($fieldMetadata);
-            $setter->addGenerator(new SetterMethodNameGenerator($attributeProcessor));
-            $setter->addGenerator(new ParameterTypeGenerator());
-            $setter->addGenerator(new SetterReturnTypeGenerator());
-            $setter->addGenerator(new SetterBodyGenerator());
-            $setter->generate();
-            $accessorMethods[] = $setter;
+        foreach (self::$generatorConfig as $accessorMethodType => $generators) {
+            if (! $attributeProcessor->shouldGenMethod($accessorMethodType)) {
+                continue;
+            }
+            /** @var AbstractAccessorMethod $processor */
+            $processor = new $generators['processor']();
+            $processor->setFieldMetadata($fieldMetadata);
+            foreach ($generators['generators'] as $generator) {
+                $processor->addGenerator(new $generator($attributeProcessor));
+            }
+            $processor->generate();
+            $accessorMethods[] = $processor;
         }
 
         return $accessorMethods;

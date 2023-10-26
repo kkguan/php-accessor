@@ -9,5 +9,5 @@ declare(strict_types=1);
 namespace PHPSTORM_META;
 
 // Reflect
-override(\PhpAccessor\Processor\AttributeProcessor::getClassAttributeHandler(0), map(['' => '@']));
-override(\PhpAccessor\Processor\AttributeProcessor::getPropertyAttributeHandler(1), map(['' => '@']));
+override(\PhpAccessor\Processor\AttributeProcessor::getAttributeHandler(0), map(['' => '@']));
+override(\PhpAccessor\Processor\Attribute\DataHandler::getParameterHandler(0), map(['' => '@']));
