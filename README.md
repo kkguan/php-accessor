@@ -7,7 +7,7 @@
 ### 安装
 
 ```console
-    composer require free2one/php-accessor
+composer require free2one/php-accessor
 ```
 
 项目`composer.json` 文件中配置以下信息
@@ -36,7 +36,7 @@ class Entity
 ```
 运行命令生成代理类
 ```console
-    composer run-script php-accessor CLASS_PATH
+composer run-script php-accessor CLASS_PATH
 ```
 
 ## 注解说明
@@ -44,25 +44,28 @@ class Entity
 ### `#[Data]`
 用于PHP Accessor识别是否需要生成访问器。
 
-配置项
+#### 配置项
 
-* `namingConvention`：访问器命名约定,支持以下类别
+`namingConvention`: 访问器命名约定,支持以下类别
   - `NamingConvention::UPPER_CAMEL_CASE`: 大驼峰
-  - `NamingConvention::LOWER_CAMEL_CASE`: 小驼峰
+  - `NamingConvention::LOWER_CAMEL_CAS`: 小驼峰
   - `NamingConvention::NONE`: 首字母大写,系统默认配置
-* `accessorType`：需要生成的访问器类型
+
+
+`accessorType`: 需要生成的访问器类型
   - `AccessorType::GETTER`: 仅生成getter
   - `AccessorType::SETTER`: 仅生成setter
   - `AccessorType::BOTH`: 生成getter及setter，系统默认配置
-* `prefixConvention`:访问器前缀约定，支持以下类别
-  - `PrefixConvention::GET_SET`: 系统默认配置
+
+`prefixConvention`: 访问器前缀约定，支持以下类别
+  - `PrefixConvention::GET_SET` (系统默认配置)
     - Getter: 使用`get`
     - Setter: 使用`set`
-  - `PrefixConvention::BOOLEAN_IS`: 
+  - `PrefixConvention::BOOLEAN_IS` 
     - Getter: 当属性为布尔类型时,使用`is`,否则使用`get`
     - Setter: 使用`set`
 
-示例
+#### 示例
 
 ```php
 <?php
@@ -87,7 +90,7 @@ class Entity
 
 设置后该类字段将不生成访问器。
 
-示例
+#### 示例
 
 ```php
 <?php
@@ -111,7 +114,7 @@ class Entity
 
 设置后调用相应的Getter方法时，若属性未进行初始化，将返回null。
 
-示例
+#### 示例
 ```php
 <?php
 
