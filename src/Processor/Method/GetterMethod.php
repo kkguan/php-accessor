@@ -18,16 +18,11 @@ class GetterMethod extends AbstractAccessorMethod
     public function buildMethod(): ClassMethod
     {
         $builder = new BuilderFactory();
-
-        $method = $builder->method($this->methodName);
-        $method
+        $method = $builder->method($this->methodName)
             ->makePublic()
             ->setReturnType(implode('|', $this->returnTypes))
-            ->setDocComment($this->methodComment);
-
-        foreach ($this->body as $stmt) {
-            $method->addStmt($stmt);
-        }
+            ->setDocComment($this->methodComment)
+            ->addStmts($this->body);
 
         return $method->getNode();
     }

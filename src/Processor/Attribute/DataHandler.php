@@ -13,13 +13,14 @@ use PhpAccessor\Processor\Attribute\Parameter\AccessorTypeHandler;
 use PhpAccessor\Processor\Attribute\Parameter\NamingConventionHandler;
 use PhpAccessor\Processor\Attribute\Parameter\ParameterHandlerInterface;
 use PhpAccessor\Processor\Attribute\Parameter\PrefixConventionHandler;
+use PhpParser\Node\Arg;
 use PhpParser\Node\Attribute;
 use PhpParser\Node\Stmt\Property;
 
 /**
  * @internal
  */
-class DataHandler implements AttributeHandlerInterface
+class DataHandler extends AbstractAttributeHandler
 {
     private static array $registeredHandlers = [
         NamingConventionHandler::class,
@@ -48,11 +49,7 @@ class DataHandler implements AttributeHandlerInterface
         }
 
         $this->isPending = true;
-        foreach ($attribute->args as $arg) {
-            foreach ($this->parameterHandlers as $parameterHandler) {
-                $parameterHandler->processParameter($arg);
-            }
-        }
+        $this->processAttributeArgs($attribute->args);
     }
 
     public function isPending(): bool
@@ -63,5 +60,19 @@ class DataHandler implements AttributeHandlerInterface
     public function getParameterHandler(string $handlerClassname): ParameterHandlerInterface
     {
         return $this->parameterHandlers[$handlerClassname];
+    }
+
+    private function processAttributeArgs(array $args): void
+    {
+        foreach ($args as $arg) {
+            $this->processArgWithHandlers($arg);
+        }
+    }
+
+    private function processArgWithHandlers(Arg $arg): void
+    {
+        foreach ($this->parameterHandlers as $parameterHandler) {
+            $parameterHandler->processParameter($arg);
+        }
     }
 }

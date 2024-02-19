@@ -21,8 +21,11 @@ class MethodNameGenerator implements GeneratorInterface
 
     public function generate(FieldMetadata $fieldMetadata, AccessorMethodInterface $accessorMethod): void
     {
-        $accessorMethod->setMethodName(
-            $this->attributeProcessor->buildMethodNameFromField($fieldMetadata->getFieldName(), $fieldMetadata->getFieldTypes(), $accessorMethod->getName())
+        $methodName = $this->attributeProcessor->buildMethodNameFromField(
+            fieldName: $fieldMetadata->getFieldName(),
+            fieldType: $fieldMetadata->getFieldTypes(),
+            accessorMethodType: $accessorMethod->getName()
         );
+        $accessorMethod->setMethodName($methodName);
     }
 }

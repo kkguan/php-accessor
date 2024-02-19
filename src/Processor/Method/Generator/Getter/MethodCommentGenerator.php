@@ -19,22 +19,13 @@ class MethodCommentGenerator implements GeneratorInterface
 {
     public function generate(FieldMetadata $fieldMetadata, AccessorMethodInterface $accessorMethod): void
     {
-        if (empty($fieldMetadata->getComment())) {
-            return;
-        }
-
-        if (empty($varTagValues = $fieldMetadata->getComment()->getVarTagValues())) {
+        $comment = $fieldMetadata->getComment();
+        if (empty($comment) || empty($varTagValues = $comment->getVarTagValues())) {
             return;
         }
 
         $accessorMethod->setMethodComment((string) new PhpDocNode([
-            new PhpDocTagNode(
-                '@return',
-                new ReturnTagValueNode(
-                    $varTagValues[0]->type,
-                    ''
-                )
-            ),
+            new PhpDocTagNode('@return', new ReturnTagValueNode($varTagValues[0]->type, '')),
         ]));
     }
 }

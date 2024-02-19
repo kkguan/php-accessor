@@ -11,6 +11,7 @@ namespace PhpAccessor;
 use PhpAccessor\File\File;
 use PhpAccessor\Meta\ClassMetadata;
 use PhpAccessor\Processor\ClassProcessor;
+use PhpAccessor\Processor\CommentProcessor;
 use PhpParser\Node;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
@@ -59,8 +60,9 @@ class Runner
         $nameResolver = new NameResolver();
         $traverser->addVisitor($nameResolver);
         $stmts = $traverser->traverse($stmts);
+
         $traverser = new NodeTraverser();
-        $classProcessor = new ClassProcessor($this->genProxy, $nameResolver->getNameContext());
+        $classProcessor = new ClassProcessor($this->genProxy, new CommentProcessor($nameResolver->getNameContext()));
         $traverser->addVisitor($classProcessor);
         $ast = $traverser->traverse($stmts);
 
@@ -91,14 +93,12 @@ class Runner
 
     private function generateMetadata(ClassProcessor $classProcessor): void
     {
-        if (! $this->genMeta || empty($classProcessor->getAccessorMethods())) {
+        if (! $this->genMeta || empty($accessorMethods = $classProcessor->getAccessorMethods())) {
             return;
         }
 
         $classMetadata = new ClassMetadata('', $classProcessor->getClassname(), $classProcessor->getTraitAccessor()->getClassName());
-        foreach ($classProcessor->getAccessorMethods() as $accessorMethod) {
-            $classMetadata->addMethod($accessorMethod);
-        }
+        array_walk($accessorMethods, fn ($method) => $classMetadata->addMethod($method));
         $this->generatedFiles[] = $this->file->dumpFile(
             File::META,
             $this->getFileName($classProcessor->getClassname()) . '.json',

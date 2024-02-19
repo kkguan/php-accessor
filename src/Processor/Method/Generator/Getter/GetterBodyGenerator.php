@@ -30,25 +30,10 @@ class GetterBodyGenerator implements GeneratorInterface
     public function generate(FieldMetadata $fieldMetadata, AccessorMethodInterface $accessorMethod): void
     {
         $builder = new BuilderFactory();
-        if ($this->attributeProcessor->isDefaultNull($fieldMetadata->getFieldName())) {
-            $accessorMethod->setBody(
-                [
-                    new Return_(
-                        new Coalesce(
-                            $builder->propertyFetch($builder->var('this'), $fieldMetadata->getFieldName()),
-                            $builder->constFetch('null'),
-                        )
-                    ),
-                ]
-            );
-        } else {
-            $accessorMethod->setBody(
-                [
-                    new Return_(
-                        $builder->propertyFetch($builder->var('this'), $fieldMetadata->getFieldName())
-                    ),
-                ]
-            );
-        }
+        $propertyFetch = $builder->propertyFetch($builder->var('this'), $fieldMetadata->getFieldName());
+        $returnBody = $this->attributeProcessor->isDefaultNull($fieldMetadata->getFieldName())
+            ? new Coalesce($propertyFetch, $builder->constFetch('null'))
+            : $propertyFetch;
+        $accessorMethod->setBody([new Return_($returnBody)]);
     }
 }

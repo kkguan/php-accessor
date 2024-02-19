@@ -46,19 +46,27 @@ class AttributeProcessor
         $this->parse($node);
     }
 
-    /**
-     * check if the class is pending to generate accessor methods.
-     */
-    public function isPending(): bool
+    public function shouldProcess(): bool
     {
         return $this->getAttributeHandler(DataHandler::class)->isPending();
     }
 
+    /**
+     * Builds a method name from the given field name, field type, and accessor method type.
+     *
+     * @param string $fieldName the name of the field
+     * @param array $fieldType the type of the field
+     * @param string $accessorMethodType the type of the accessor method
+     *
+     * @return string the built method name
+     */
     public function buildMethodNameFromField(string $fieldName, array $fieldType, string $accessorMethodType): string
     {
-        $handler = $this->getAttributeHandler(DataHandler::class);
-        return $handler->getParameterHandler(PrefixConventionHandler::class)->buildPrefix($fieldType, $accessorMethodType) .
-            $handler->getParameterHandler(NamingConventionHandler::class)->buildName($fieldName);
+        $dataHandler = $this->getAttributeHandler(DataHandler::class);
+        $prefix = $dataHandler->getParameterHandler(PrefixConventionHandler::class)->buildPrefix($fieldType, $accessorMethodType);
+        $name = $dataHandler->getParameterHandler(NamingConventionHandler::class)->buildName($fieldName);
+
+        return $prefix . $name;
     }
 
     /**
@@ -90,43 +98,25 @@ class AttributeProcessor
         }
     }
 
+    /**
+     * Parses the given node.
+     *
+     * This method is responsible for parsing the given node. It does this by calling the parseAttributes method twice.
+     * The first call processes the attributes of the node, and the second call processes the properties of the node.
+     *
+     * @param Node $node the node to parse
+     */
     private function parse(Node $node): void
     {
-        // Parse class attributes
-        $this->parseClassAttributes($node);
-        // Parse property attributes
-        $this->parsePropertyAttributes($node);
+        $this->parseAttributes($node->attrGroups, Attribute::class);
+        $this->parseAttributes($node, Property::class);
     }
 
-    private function parseClassAttributes(Node $node): void
+    private function parseAttributes(Node|array $nodes, string $class): void
     {
-        /** @var Attribute[] $attributes */
-        $attributes = $this->nodeFinder->findInstanceOf($node->attrGroups, Attribute::class);
+        $foundNodes = $this->nodeFinder->findInstanceOf($nodes, $class);
         foreach ($this->attributeHandlers as $attributeHandler) {
-            $this->processAttributesByHandler($attributeHandler, $attributes);
-        }
-    }
-
-    private function parsePropertyAttributes(Node $node): void
-    {
-        /** @var Property[] $properties */
-        $properties = $this->nodeFinder->findInstanceOf($node, Property::class);
-        foreach ($this->attributeHandlers as $attributeHandler) {
-            foreach ($properties as $property) {
-                /** @var Attribute[] $attributes */
-                $attributes = $this->nodeFinder->findInstanceOf($property->attrGroups, Attribute::class);
-                $this->processAttributesByHandler($attributeHandler, $attributes, $property);
-            }
-        }
-    }
-
-    /**
-     * @param Attribute[] $attributes
-     */
-    private function processAttributesByHandler(AttributeHandlerInterface $attributeHandler, array $attributes, ?Property $property = null): void
-    {
-        foreach ($attributes as $attribute) {
-            $attributeHandler->processAttribute($attribute, $property);
+            $attributeHandler->processAttributes($foundNodes);
         }
     }
 

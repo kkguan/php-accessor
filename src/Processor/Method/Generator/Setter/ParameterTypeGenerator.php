@@ -20,12 +20,7 @@ class ParameterTypeGenerator implements GeneratorInterface
      */
     public function generate(FieldMetadata $fieldMetadata, AccessorMethodInterface $accessorMethod): void
     {
-        if (empty($fieldMetadata->getFieldTypes())) {
-            $types = ['mixed'];
-        } else {
-            $types = $fieldMetadata->getFieldTypes();
-        }
-
+        $types = $fieldMetadata->getFieldTypes() ?: ['mixed'];
         $accessorMethod->setParameterTypes($types);
     }
 }

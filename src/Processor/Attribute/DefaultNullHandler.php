@@ -15,7 +15,7 @@ use PhpParser\Node\Stmt\Property;
 /**
  * @internal
  */
-class DefaultNullHandler implements AttributeHandlerInterface
+class DefaultNullHandler extends AbstractAttributeHandler
 {
     private bool $isDefaultNull = false;
 

@@ -30,7 +30,6 @@ class ReturnTypeGenerator implements GeneratorInterface
             $types = ['mixed'];
         } else {
             $types = $fieldMetadata->getFieldTypes();
-
             if ($this->attributeProcessor->isDefaultNull($fieldMetadata->getFieldName())
                 && ! in_array('null', $types)
                 && ! in_array('mixed', $types)) {

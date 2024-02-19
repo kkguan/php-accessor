@@ -12,8 +12,8 @@ use PhpAccessor\Attribute\Data;
 use PhpAccessor\File\File;
 use PhpAccessor\Processor\Method\AccessorMethodInterface;
 use PhpParser\BuilderFactory;
-use PhpParser\NameContext;
 use PhpParser\Node;
+use PhpParser\Node\AttributeGroup;
 use PhpParser\Node\Expr\Include_;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Class_;
@@ -39,8 +39,6 @@ class ClassProcessor extends NodeVisitorAbstract
 
     private TraitAccessor $traitAccessor;
 
-    private CommentProcessor $commentProcessor;
-
     private NodeFinder $nodeFinder;
 
     /** @var Property[] */
@@ -51,10 +49,9 @@ class ClassProcessor extends NodeVisitorAbstract
 
     public function __construct(
         private bool $genMethod,
-        NameContext $nameContext,
+        private CommentProcessor $commentProcessor,
     ) {
         $this->nodeFinder = new NodeFinder();
-        $this->commentProcessor = new CommentProcessor($nameContext);
     }
 
     public function enterNode(Node $node)
@@ -65,11 +62,7 @@ class ClassProcessor extends NodeVisitorAbstract
 
         $this->classname = '\\' . $node->namespacedName->toString();
         $attributeProcessor = new AttributeProcessor($node);
-        if (! $attributeProcessor->isPending()) {
-            return null;
-        }
-
-        if (! $this->parsePropertiesAndMethods($node)) {
+        if (! $attributeProcessor->shouldProcess() || ! $this->parsePropertiesAndMethods($node)) {
             return null;
         }
 
@@ -116,32 +109,36 @@ class ClassProcessor extends NodeVisitorAbstract
     /**
      * Parse properties and methods from class node.
      */
-    private function parsePropertiesAndMethods(Node $node): bool
+    private function parsePropertiesAndMethods(Class_ $node): bool
     {
         $this->originalProperties = $this->nodeFinder->findInstanceOf($node, Property::class);
-        /** @var ClassMethod[] $originalClassMethods */
         $originalClassMethods = $this->nodeFinder->findInstanceOf($node, ClassMethod::class);
+
+        /** @var ClassMethod[] $originalClassMethods */
         foreach ($originalClassMethods as $method) {
             $this->originalMethods[] = $method->name->name;
-            if (empty($method->getParams()) || $method->name->name != '__construct') {
-                continue;
-            }
-
-            foreach ($method->getParams() as $param) {
-                if ($param->flags == 0) {
-                    continue;
-                }
-                // Add the promoted parameters to the property list.
-                $propertyBuilder = new \PhpParser\Builder\Property($param->var->name);
-                $propertyBuilder->setDefault($param->default);
-                $property = $propertyBuilder->getNode();
-                $property->flags = $param->flags;
-                $property->type = $param->type;
-                $this->originalProperties[] = $property;
+            if ($method->name->name == '__construct') {
+                $this->addPromotedParamsToProperties($method);
             }
         }
 
         return ! empty($this->originalProperties);
+    }
+
+    private function addPromotedParamsToProperties(ClassMethod $method): void
+    {
+        foreach ($method->getParams() as $param) {
+            if ($param->flags == 0) {
+                continue;
+            }
+
+            $propertyBuilder = new \PhpParser\Builder\Property($param->var->name);
+            $propertyBuilder->setDefault($param->default);
+            $property = $propertyBuilder->getNode();
+            $property->flags = $param->flags;
+            $property->type = $param->type;
+            $this->originalProperties[] = $property;
+        }
     }
 
     /**
@@ -156,21 +153,35 @@ class ClassProcessor extends NodeVisitorAbstract
                 continue;
             }
 
-            foreach ($property->props as $prop) {
-                $this->accessorMethods = array_merge(
-                    $this->accessorMethods,
-                    MethodFactory::createFromProperty(
-                        $classname,
-                        $prop,
-                        $property->type,
-                        $this->commentProcessor->buildDocNode($property),
-                        $attributeProcessor
-                    )
-                );
-            }
+            $this->accessorMethods = array_merge(
+                $this->accessorMethods,
+                $this->createMethodsFromProperties($classname, $property, $attributeProcessor)
+            );
         }
 
         $this->genTraitAccessor();
+    }
+
+    private function createMethodsFromProperties(
+        string $classname,
+        Property $property,
+        AttributeProcessor $attributeProcessor
+    ): array {
+        $methods = [];
+        foreach ($property->props as $prop) {
+            $methods = array_merge(
+                $methods,
+                MethodFactory::createFromProperty(
+                    classname: $classname,
+                    property: $prop,
+                    propertyType: $property->type,
+                    propertyDocComment: $this->commentProcessor->buildDocNode($property),
+                    attributeProcessor: $attributeProcessor
+                )
+            );
+        }
+
+        return $methods;
     }
 
     private function genTraitAccessor(): void
@@ -191,27 +202,12 @@ class ClassProcessor extends NodeVisitorAbstract
         $class = $builder
             ->class($node->name->toString())
             ->addStmt($builder->useTrait('\\' . $this->traitAccessor->getClassName()));
+
         $node->extends && $class->extend($node->extends);
         $node->isAbstract() && $class->makeAbstract();
 
-        foreach ($node->attrGroups as $attrGroup) {
-            $ignore = false;
-            foreach ($attrGroup->attrs as $attr) {
-                if ($attr->name->toString() == Data::class) {
-                    $ignore = true;
-                    break;
-                }
-            }
-            if ($ignore) {
-                continue;
-            }
-
-            $class->addAttribute($attrGroup);
-        }
-
-        foreach ($node->implements as $implement) {
-            $class->implement($implement);
-        }
+        $this->addAttributes($class, $node);
+        $this->addImplements($class, $node);
 
         $newNode = $class->getNode();
         $newNode->stmts = array_merge($newNode->stmts, $node->stmts);
@@ -219,15 +215,41 @@ class ClassProcessor extends NodeVisitorAbstract
         return $newNode;
     }
 
+    private function addAttributes(\PhpParser\Builder\Class_ $class, Class_ $node): void
+    {
+        foreach ($node->attrGroups as $attrGroup) {
+            if ($this->shouldIgnoreAttribute($attrGroup)) {
+                continue;
+            }
+            $class->addAttribute($attrGroup);
+        }
+    }
+
+    private function shouldIgnoreAttribute(AttributeGroup $attrGroup): bool
+    {
+        foreach ($attrGroup->attrs as $attr) {
+            if ($attr->name->toString() == Data::class) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function addImplements(\PhpParser\Builder\Class_ $class, Class_ $node): void
+    {
+        foreach ($node->implements as $implement) {
+            $class->implement($implement);
+        }
+    }
+
     /**
      * Add include statement for trait accessor.
      */
     private function addIncludeForTraitAccessor(array $nodes): array
     {
-        $nodeFinder = new NodeFinder();
-        /** @var Namespace_ $namespace */
-        $namespace = $nodeFinder->findFirstInstanceOf($nodes, Namespace_::class);
-        $include = new Expression(new Include_(new String_(File::ACCESSOR . DIRECTORY_SEPARATOR . $this->traitAccessor->getClassName() . '.php'), Include_::TYPE_INCLUDE_ONCE));
+        $namespace = (new NodeFinder())->findFirstInstanceOf($nodes, Namespace_::class);
+        $includePath = File::ACCESSOR . DIRECTORY_SEPARATOR . $this->traitAccessor->getClassName() . '.php';
+        $include = new Expression(new Include_(new String_($includePath), Include_::TYPE_INCLUDE_ONCE));
         array_unshift($namespace->stmts, $include);
 
         return $nodes;

@@ -10,49 +10,34 @@ namespace PhpAccessor\Processor\Attribute\Parameter;
 
 use PhpAccessor\Attribute\Map\PrefixConvention;
 use PhpAccessor\Processor\Method\AccessorMethodType;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Identifier;
+use PhpParser\Node\Expr;
 
 /**
+ * Handles the prefix convention for method names.
+ *
  * @internal
  */
-class PrefixConventionHandler implements ParameterHandlerInterface
+class PrefixConventionHandler extends AbstractParameterHandler
 {
-    private int $value = PrefixConvention::GET_SET;
-
-    public function processParameter(Arg $parameter): void
-    {
-        if ($parameter->name->name != 'prefixConvention') {
-            return;
-        }
-
-        $parameterValue = $parameter->value;
-        if (! ($parameterValue instanceof ClassConstFetch) || ! ($parameterValue->name instanceof Identifier)) {
-            return;
-        }
-
-        $value = match ($parameterValue->name->name) {
-            'GET_SET' => PrefixConvention::GET_SET,
-            'BOOLEAN_IS' => PrefixConvention::BOOLEAN_IS,
-            default => null,
-        };
-        $value && $this->value = $value;
-    }
-
-    public function setValue(int $value): PrefixConventionHandler
-    {
-        $this->value = $value;
-        return $this;
-    }
+    protected mixed $config = PrefixConvention::GET_SET;
 
     public function buildPrefix(array $fieldType, string $accessorMethodType): string
     {
-        return match ($this->value) {
+        return match ($this->config) {
             PrefixConvention::GET_SET => $this->buildGetSetPrefix($accessorMethodType),
             PrefixConvention::BOOLEAN_IS => $this->buildBooleanIsPrefix($fieldType, $accessorMethodType),
             default => '',
         };
+    }
+
+    protected function shouldProcess(string $parameterName, Expr $parameterValue): bool
+    {
+        return $parameterName == 'prefixConvention';
+    }
+
+    protected function getClassName(): string
+    {
+        return PrefixConvention::class;
     }
 
     private function buildGetSetPrefix(string $accessorMethodType): string
@@ -62,11 +47,8 @@ class PrefixConventionHandler implements ParameterHandlerInterface
 
     private function buildBooleanIsPrefix(array $fieldType, string $accessorMethodType): string
     {
-        $prefix = $this->buildGetSetPrefix($accessorMethodType);
-        if (in_array('bool', $fieldType) && $accessorMethodType == AccessorMethodType::GETTER) {
-            $prefix = 'is';
-        }
-
-        return $prefix;
+        return in_array('bool', $fieldType) && $accessorMethodType == AccessorMethodType::GETTER
+            ? 'is'
+            : $this->buildGetSetPrefix($accessorMethodType);
     }
 }

@@ -9,50 +9,32 @@ declare(strict_types=1);
 namespace PhpAccessor\Processor\Attribute\Parameter;
 
 use PhpAccessor\Attribute\Map\NamingConvention as NamingConventionMap;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Identifier;
+use PhpParser\Node\Expr;
 
 /**
  * @internal
  */
-class NamingConventionHandler implements ParameterHandlerInterface
+class NamingConventionHandler extends AbstractParameterHandler
 {
-    private int $value = NamingConventionMap::NONE;
-
-    public function processParameter(Arg $parameter): void
-    {
-        if ($parameter->name->name != 'namingConvention') {
-            return;
-        }
-
-        $parameterValue = $parameter->value;
-        if (! ($parameterValue instanceof ClassConstFetch) || ! ($parameterValue->name instanceof Identifier)) {
-            return;
-        }
-
-        $value = match ($parameterValue->name->name) {
-            'LOWER_CAMEL_CASE' => NamingConventionMap::LOWER_CAMEL_CASE,
-            'UPPER_CAMEL_CASE' => NamingConventionMap::UPPER_CAMEL_CASE,
-            default => null,
-        };
-        $value && $this->value = $value;
-    }
-
-    public function setValue(int $value): static
-    {
-        $this->value = $value;
-
-        return $this;
-    }
+    protected mixed $config = NamingConventionMap::NONE;
 
     public function buildName(string $fieldName): string
     {
-        return match ($this->value) {
+        return match ($this->config) {
             NamingConventionMap::LOWER_CAMEL_CASE => $this->camelize($fieldName, true),
             NamingConventionMap::UPPER_CAMEL_CASE => $this->camelize($fieldName),
             default => ucfirst($fieldName),
         };
+    }
+
+    protected function shouldProcess(string $parameterName, Expr $parameterValue): bool
+    {
+        return $parameterName == 'namingConvention';
+    }
+
+    protected function getClassName(): string
+    {
+        return NamingConventionMap::class;
     }
 
     private function camelize($str, $low = false): string

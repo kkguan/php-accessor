@@ -20,17 +20,14 @@ class SetterBodyGenerator implements GeneratorInterface
 {
     public function generate(FieldMetadata $fieldMetadata, AccessorMethodInterface $accessorMethod): void
     {
+        $fieldName = $fieldMetadata->getFieldName();
         $builder = new BuilderFactory();
-        $body = [];
+        $thisField = $builder->propertyFetch($builder->var('this'), $fieldName);
+        $fieldVar = $builder->var($fieldName);
 
-        $body[] = new Expression(
-            new Assign(
-                $builder->propertyFetch($builder->var('this'), $fieldMetadata->getFieldName()),
-                $builder->var($fieldMetadata->getFieldName())
-            )
-        );
-        $body[] = new Return_($builder->var('this'));
-
-        $accessorMethod->setBody($body);
+        $accessorMethod->setBody([
+            new Expression(new Assign($thisField, $fieldVar)),
+            new Return_($builder->var('this')),
+        ]);
     }
 }

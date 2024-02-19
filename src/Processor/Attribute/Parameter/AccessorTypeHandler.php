@@ -9,51 +9,18 @@ declare(strict_types=1);
 namespace PhpAccessor\Processor\Attribute\Parameter;
 
 use PhpAccessor\Attribute\Map\AccessorType as AccessorTypeMap;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Identifier;
+use PhpParser\Node\Expr;
 
 /**
  * @internal
  */
-class AccessorTypeHandler implements ParameterHandlerInterface
+class AccessorTypeHandler extends AbstractParameterHandler
 {
-    private string $value = AccessorTypeMap::BOTH;
-
-    public function processParameter(Arg $parameter): void
-    {
-        if ($parameter->name->name != 'accessorType') {
-            return;
-        }
-
-        $parameterValue = $parameter->value;
-        if (! ($parameterValue instanceof ClassConstFetch) || ! ($parameterValue->name instanceof Identifier)) {
-            return;
-        }
-
-        $value = match ($parameterValue->name->name) {
-            'BOTH' => AccessorTypeMap::BOTH,
-            'GETTER' => AccessorTypeMap::GETTER,
-            'SETTER' => AccessorTypeMap::SETTER,
-            default => null,
-        };
-        $value && $this->value = $value;
-    }
-
-    public function getValue(): string
-    {
-        return $this->value;
-    }
-
-    public function setValue(string $value): AccessorTypeHandler
-    {
-        $this->value = $value;
-        return $this;
-    }
+    protected mixed $config = AccessorTypeMap::BOTH;
 
     public function shouldGenerateGetter(): bool
     {
-        if ($this->value == AccessorTypeMap::BOTH || $this->value == AccessorTypeMap::GETTER) {
+        if ($this->config == AccessorTypeMap::BOTH || $this->config == AccessorTypeMap::GETTER) {
             return true;
         }
 
@@ -62,10 +29,20 @@ class AccessorTypeHandler implements ParameterHandlerInterface
 
     public function shouldGenerateSetter(): bool
     {
-        if ($this->value == AccessorTypeMap::BOTH || $this->value == AccessorTypeMap::SETTER) {
+        if ($this->config == AccessorTypeMap::BOTH || $this->config == AccessorTypeMap::SETTER) {
             return true;
         }
 
         return false;
+    }
+
+    protected function shouldProcess(string $parameterName, Expr $parameterValue): bool
+    {
+        return $parameterName == 'accessorType';
+    }
+
+    protected function getClassName(): string
+    {
+        return AccessorTypeMap::class;
     }
 }

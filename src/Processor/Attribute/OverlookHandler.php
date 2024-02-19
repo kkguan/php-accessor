@@ -15,7 +15,7 @@ use PhpParser\Node\Stmt\Property;
 /**
  * @internal
  */
-class OverlookHandler implements AttributeHandlerInterface
+class OverlookHandler extends AbstractAttributeHandler
 {
     private array $propertyIsOverlook = [];
 

@@ -28,16 +28,14 @@ class SetterMethod extends AbstractAccessorMethod
     {
         $builder = new BuilderFactory();
 
-        $param = $builder->param($this->fieldMetadata->getFieldName());
-        $param->setType(implode('|', $this->parameterTypes));
+        $param = $builder->param($this->fieldMetadata->getFieldName())
+            ->setType(implode('|', $this->parameterTypes));
 
-        $method = $builder->method($this->methodName);
-        $method->makePublic()
+        $method = $builder->method($this->methodName)
+            ->makePublic()
             ->addParam($param)
-            ->setReturnType(implode('|', $this->returnTypes));
-        foreach ($this->body as $stmt) {
-            $method->addStmt($stmt);
-        }
+            ->setReturnType(implode('|', $this->returnTypes))
+            ->addStmts($this->body);
 
         return $method->getNode();
     }
