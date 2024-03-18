@@ -60,7 +60,7 @@ class FieldMetadataBuilder
         }
 
         if ($propertyType instanceof Name) {
-            $this->fieldMetadata->addFieldType('\\' . implode('\\', $propertyType->getParts()));
+            $this->fieldMetadata->addFieldType('\\' . $propertyType->toString());
 
             return;
         }
