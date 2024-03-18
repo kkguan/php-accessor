@@ -43,4 +43,6 @@ class GetterMethodComment
      * @var string
      */
     private $foo;
+
+    private FooSub $fooSub;
 }
